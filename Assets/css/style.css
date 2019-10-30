@@ -1,0 +1,65 @@
+.navbar-dark .navbar-nav .nav-link, .navbar-brand:link {
+  background:transparent !important;
+}
+#wrap {
+  margin-bottom:60px;
+}
+.main-title {
+  text-align:center;
+  margin-top:20px;
+}
+#footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  /* Set the fixed height of the footer here */
+  height: 60px;
+  line-height: 60px; /* Vertically center the text there */
+  background-color: #343a40;
+  color:white;
+}
+.font-bold {
+  font-weight:bold;
+}
+h1 {
+  font-size: 2rem !important;
+}
+.py-3 {
+  padding-top:0 !important;
+}
+#wrap .container
+{
+  margin-top:20px;
+}
+
+.font-warning {
+  color:orange;
+}
+.font-success {
+  color:green;
+}
+.font-danger {
+  color:red;
+}
+.form__container input,
+.form__container button
+{
+  display:block;
+  margin-top:20px;
+  width:100%;
+}
+#main {
+  margin-bottom:100px !important;
+}
+span.online {
+  background-color:#12ab12;
+  color:white;
+  padding:3px;
+  border-radius:5px;
+}
+span.offline {
+  background-color:#ca2a2a;
+  color:white;
+  padding:3px;
+  border-radius:5px;
+}
