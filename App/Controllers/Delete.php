@@ -9,6 +9,8 @@ namespace App\Controllers;
 use \Core\View;
 use \App\Config;
 
+use \App\Controllers\Login;
+
 /**
  * Home controller
  *
@@ -18,11 +20,21 @@ class Delete extends \Core\Controller
 {
   public $list_all_folders = array();
 
+
+
+    public function __construct()
+    {
+       $connexion = new Login();
+
+       $connexion->checkConnexion();
+
+    }
+
     /**
-     * Show the index page
-     *
-     * @return void
-     */
+      * Show the index page
+      *
+      * @return void
+      */
     public function index()
     {
 

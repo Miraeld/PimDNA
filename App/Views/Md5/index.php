@@ -3,6 +3,7 @@
 {% block title %}Home{% endblock %}
 
 {% block body %}
+
 <div class="container">
   <div class="row">
     <div class="col-lg-12 main-title">
@@ -18,6 +19,26 @@
       </button>
     </div>
   {% endif %}
+</div>
+<!-- Progress area -->
+<div class="container generation_process" style="display:none;">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="ajax-res">
+        <div class="card">
+          <div class="card-header">
+            <h3>Generation of .pdna file</h3>
+          </div>
+          <div class="card-body">
+            <p>Processing...</p>
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%">0%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 <div class="container">
   <div class="row">
@@ -94,39 +115,10 @@
     </div>
   </div>
 </div>
-<!-- <div class="container" style="margin-top:100px;">
-  <div class="row">
-    <div class="col-lg-12">
+<form id="compare_result" action='/pimdna/public/md5/results' method="POST">
+  <input type="hidden" class="args_data" name="args_data">
+</form>
 
-        <div class="card">
-          <div class="card-header">
-            Debug
-          </div>
-          <div class="card-body">
-            {% if (file_exist) %}
-              true
-            {% else %}
-              false
-            {% endif %}
-
-            <ul>
-              {% for content in content_dir %}
-                <li>{{content}}</li>
-              {% endfor %}
-            </ul>
-
-            {{test | raw}}
-
-
-          </div>
-        </div>
-
-
-
-
-    </div>
-  </div>
-</div> -->
 
 
 {% endblock %}

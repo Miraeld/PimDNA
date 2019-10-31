@@ -11,6 +11,8 @@ use \App\Config;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
+use \App\Controllers\Utilities;
+use \App\Controllers\Technical;
 /**
  * Home controller
  *
@@ -20,6 +22,7 @@ class Md5 extends \Core\Controller
 {
     public $listfile = '';
     public $content_folder = array();
+    public $utilities;
     /**
      * Show the index page
      *
@@ -28,13 +31,17 @@ class Md5 extends \Core\Controller
 
     public function __construct()
     {
+      
         $this->listfile = '';
         $this->content_folder = array();
+        $this->utilities = new Utilities();
         return $this;
     }
     public function indexAction()
     {
-      $this->checkConnexion();
+      $connexion = new Login();
+      $connexion->checkConnexion();
+
       $dir = $_SERVER['DOCUMENT_ROOT'].'/';
       $file_exist = $this->exist_dna('../dna/');
 
@@ -59,48 +66,17 @@ class Md5 extends \Core\Controller
         'document_root' => $dir,
         'list_pdna'     => $f_list_pdna,
 
+
       );
       View::renderTemplate('Md5/index.php', $args);
 
     }
-
-    public function generate()
+    public function index_generation()
     {
-      ignore_user_abort(true);
-      ini_set("memory_limit", "-1");
-      set_time_limit(0);
+      $connexion = new Login();
+      $connexion->checkConnexion();
 
-      // $dir = $_SERVER['DOCUMENT_ROOT'];
-      $dir = '../..';
-      $this->listFolder($dir);
-
-      if ($this->content_folder) {
-        $total_entries = count($this->content_folder);
-        $dna_file = "../dna/".date('d-m-Y-h-i-s').".pdna";
-        $filesave = fopen($dna_file, 'w');
-
-        foreach ($this->content_folder as $index => $info)
-        {
-          if (filesize($info['path']) < 2147483648)
-          {
-            $string =  str_replace('../..','', $info['path'])." || ".md5_file($info['path'])."\n";
-            fwrite($filesave, $string);
-          }
-
-
-          $this->content_folder[$index] = null;
-          unset($this->content_folder[$index]);
-          //
-          // ob_flush();
-          // flush();
-          sleep(0.000166667);
-        }
-        fclose($filesave);
-      }
-      // var_export($this->content_folder);
-      ///
-
-      $dir = $_SERVER['DOCUMENT_ROOT'];
+      $dir = $_SERVER['DOCUMENT_ROOT'].'/';
       $file_exist = $this->exist_dna('../dna/');
 
       $list_pdna = scandir('../dna/');
@@ -120,234 +96,321 @@ class Md5 extends \Core\Controller
       }
 
       $args = array(
-        'file_exist'      => $file_exist,
-        'document_root'   => $dir,
-        'list_pdna'       => $f_list_pdna,
+        'file_exist'    => $file_exist,
+        'document_root' => $dir,
+        'list_pdna'     => $f_list_pdna,
         'generation_done' => true
+
+
       );
-      if (Config::HANGOUT_MSG)
-      {
-        $hangout_msg = "PimDNA Report\n\n";
-        $hangout_msg .= "Generation made for ".$_SERVER['SERVER_NAME']." the *".date('d-m-Y')."* at *".date('H:i:s')."*.";
-        $this->send_hg_msg(0, $hangout_msg);
-      }
-
-
       View::renderTemplate('Md5/index.php', $args);
 
     }
 
-    private function send_hg_msg($type = 0, $hangout_msg)
+    public function generate()
     {
-      if ($type == 0)
-        $url = 'https://chat.googleapis.com/v1/spaces/AAAAAtDsBjY/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=xK-3w-XOWRKF3COWe92Ti2UAsE4lR010YT48HOGg-Uo%3D';
-      else
-        $url = 'https://chat.googleapis.com/v1/spaces/AAAAAtDsBjY/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=vDOYoZiE-X8kUWkIsQepFhuLExMsp5iPadjZRDvWKys%3D';
 
-      if (Config::DEV_MODE) {
-        $url = 'https://chat.googleapis.com/v1/spaces/AAAAEr0XuOI/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=GLThTxD27qr84UZeVtlFvW-YeiVcb1LUejkghl_5YYk%3D';
+      if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+        ignore_user_abort(true);
+        ini_set("memory_limit", "-1");
+        set_time_limit(0);
+
+
+        $dir = '../..';
+        $this->listFolder($dir);
+
+        if ($this->content_folder)
+        {
+          $total_entries = count($this->content_folder);
+          $current_entrie = 0;
+
+          echo json_encode(array('progress' => 0, 'count' => $current_entrie, 'total' => $total_entries));
+          flush();
+          ob_flush();
+
+
+          $dna_file = "../dna/".date('d-m-Y-h-i-s').".pdna";
+          $filesave = fopen($dna_file, 'w');
+
+          foreach ($this->content_folder as $index => $info)
+          {
+            $current_entrie++;
+            if (filesize($info['path']) < 2147483648)
+            {
+              $string =  str_replace('../..','', $info['path'])." || ".md5_file($info['path'])."\n";
+              fwrite($filesave, $string);
+            }
+
+
+            $this->content_folder[$index] = null;
+            unset($this->content_folder[$index]);
+
+            echo json_encode(array('progress' => number_format((($current_entrie/$total_entries)*100), 2), 'count' => $current_entrie, 'total' => $total_entries));
+
+            sleep(0.000166667);
+            ob_flush();
+            flush();
+          }
+          fclose($filesave);
+          if (Config::HANGOUT_MSG)
+          {
+            $hangout_msg = "PimDNA Report\n\n";
+            $hangout_msg .= "Generation made for ".$_SERVER['SERVER_NAME']." the *".date('d-m-Y')."* at *".date('H:i:s')."*.";
+            $this->utilities->send_hg_msg(0, $hangout_msg);
+          }
+        }
       }
-
-      $ch = curl_init();
-      curl_setopt($ch, CURLOPT_URL, $url);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json"));
-      curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(array('text' => $hangout_msg)));
-      curl_setopt($ch, CURLOPT_POST, 1);
-      $result = curl_exec ($ch);
-      curl_close ($ch);
-
-      return true;
     }
 
     public function results()
     {
-      $this->checkConnexion();
-      $dir = $_SERVER['DOCUMENT_ROOT'].'/';
-      $file_exist = $this->exist_dna($dir);
-      $content_dir = scandir($dir, 1);
-      unset($content_dir[array_search('.', $content_dir, true)]);
-      unset($content_dir[array_search('..', $content_dir, true)]);
-      $content_dir = '';
-      $test = $this->listFolder($dir);
+      $connexion = new Login();
+      $connexion->checkConnexion();
 
-      // var_export($this->content);
-      // exit();
-      // $test = $this->listFolderFiles($dir);
-
-      // str_replace($_SERVER['DOCUMENT_ROOT'], $_SERVER['SCRIPT_SERVER'])
-      $args = array(
-        'file_exist'  => $file_exist,
-        'content_dir' => $content_dir,
-        'test'        => $_SERVER['DOCUMENT_ROOT']
-      );
+      $args = json_decode($_POST['args_data'],true);
       View::renderTemplate('Md5/result.php', $args);
     }
 
-    private function rutime($ru, $rus, $index)
-    {
-        return ($ru["ru_$index.tv_sec"]*1000 + intval($ru["ru_$index.tv_usec"]/1000))
-         -  ($rus["ru_$index.tv_sec"]*1000 + intval($rus["ru_$index.tv_usec"]/1000));
-    }
 
     public function compare()
     {
+      if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+        ignore_user_abort(true);
+        ini_set("memory_limit", "-1");
+        set_time_limit(0);
 
-      ini_set("memory_limit", "-1");
-      set_time_limit(0);
+        $current_entrie = 0;
+        $step_max = 50;
 
-      $file_no_change = array();
-      $file_changed = array();
-      $file_removed = array();
-      $rustart = getrusage();
+        $file_no_change = array();
+        $file_changed = array();
+        $file_removed = array();
 
-      $dir = '../..';
-      $this->listFolder($dir);
+        $rustart = getrusage();
 
-      $files = scandir('../dna/', SCANDIR_SORT_DESCENDING);
-      $dna_reference = $files[0];
-      $filename = '../dna/'.$dna_reference;
-      $dna_file = fopen($filename, 'r');
-      if ($dna_file)
-      {
-        $array_fileline = explode("\n", fread($dna_file, filesize($filename)));
-      }
-      $ref_dna = array();
-      foreach ($array_fileline as $index => $value) {
-        $val = explode(' || ', $value);
-        if (!empty($val[0])) {
-          $existing_index = ($this->search_in_dna($val[0]));
+        $dir = '../..';
+        $this->listFolder($dir);
 
-          if ($existing_index) {
-            if (md5_file($this->content_folder[$existing_index]['path']) == $val[1]) {
-              // echo "MD5 SIMILAR<br>";
-              array_push($file_no_change, array('path' => $val[0]));
-            } else {
-              // echo "MD5 DIFFERENT<br>";
-              array_push($file_changed, array('path' => $val[0]));
-            }
-            $this->content_folder[$existing_index] = null;
-            unset($this->content_folder[$existing_index]);
-          } else {
-            // echo "FILE REMOVED<br>";
-            array_push($file_removed, array('path' => $val[0]));
-            $this->content_folder[$existing_index] = null;
-            unset($this->content_folder[$existing_index]);
-          }
-
+        $files = scandir('../dna/', SCANDIR_SORT_DESCENDING);
+        $dna_reference = $files[0];
+        $filename = '../dna/'.$dna_reference;
+        $dna_file = fopen($filename, 'r');
+        if ($dna_file)
+        {
+          $array_fileline = explode("\n", fread($dna_file, filesize($filename)));
         }
-        // ob_flush();
+
+        $total_entries = count($array_fileline);
+        echo json_encode(array('status' => 0, 'progress' => 0, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Init...'));
         flush();
-        sleep(0.000166667);
-      }
-
-      $ru = getrusage();
-      $time_processed =  $this->rutime($ru, $rustart, "utime").' ms';
-      $test = $file_changed;
-      $file_added = $this->content_folder;
-      $directory = dirname(__FILE__);
-      $checkdisk = array(
-        'total_space' => disk_total_space($directory),
-        'free_space'  => disk_free_space($directory),
-        'used_space'  => disk_total_space($directory)-disk_free_space($directory),
-        'percent'     => ((disk_total_space($directory)-disk_free_space($directory))/disk_total_space($directory))*100,
-      );
-      ob_flush();
-      flush();
-      if (Config::SEND_MAIL)
-      {
-        $mail_result = $this->send_email($file_changed, $file_removed, $file_added, count($file_no_change), false, $checkdisk);
-      } else {
-        $mail_result = false;
-      }
-      $searchforArr = Config::SUSPICIOUS_ARR;
-      $suspicious_file = array();
-      foreach ($file_added as $added)
-      {
-        $contents = file_get_contents($added['path']);
-        foreach ($searchforArr as $searchfor)
+        ob_flush();
+        $step  = 0;
+        foreach ($array_fileline as $index => $value)
         {
-          $pattern = preg_quote($searchfor, '/');
-          $detected = $pattern;
-          // finalise the regular expression, matching the whole line
-          $pattern = "/^.*$pattern.*\$/m";
-          if(preg_match_all($pattern, $contents, $matches))
+          $val = explode(' || ', $value);
+          if (!empty($val[0]))
           {
-            $added['suspicious'] = implode("\n", $matches[0]);
-            array_push($suspicious_file, $added);
-            // echo "Files: ".$added['filename']." - Found matches:\n";
-            // echo implode("\n", $matches[0]);
-          }
-        }
-      }
+            $existing_index = ($this->search_in_dna($val[0]));
 
-      foreach ($file_changed as $modified)
-      {
-        $contents = file_get_contents('../..'.$modified['path']);
-        foreach ($searchforArr as $searchfor)
-        {
-          $pattern = preg_quote($searchfor, '/');
-          $detected = $pattern;
-          // finalise the regular expression, matching the whole line
-          $pattern = "/^.*$pattern.*\$/m";
-          if(preg_match_all($pattern, $contents, $matches))
-          {
-            $modified['suspicious'] = implode("\n", $matches[0]);
-            array_push($suspicious_file, $modified);
+            if ($existing_index)
+            {
+              if (md5_file($this->content_folder[$existing_index]['path']) == $val[1])
+              {
+                // echo "MD5 SIMILAR<br>";
+                array_push($file_no_change, array('path' => $val[0]));
+              } else {
+                // echo "MD5 DIFFERENT<br>";
+                array_push($file_changed, array('path' => $val[0]));
+              }
+              $this->content_folder[$existing_index] = null;
+              unset($this->content_folder[$existing_index]);
+            } else {
+              // echo "FILE REMOVED<br>";
+              array_push($file_removed, array('path' => $val[0]));
+              $this->content_folder[$existing_index] = null;
+              unset($this->content_folder[$existing_index]);
+            }
 
           }
+          $current_entrie++;
+          if ($step == $step_max)
+          {
+              echo json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100),2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Comparing...'));
+          }
+          else if ($step < $step_max)
+          {
+            $step++;
+          }
+          else
+          {
+            $step = 0;
+          }
+
+
+          ob_flush();
+          flush();
+          sleep(0.000166667);
         }
+
+        $ru = getrusage();
+        $time_processed =  $this->utilities->rutime($ru, $rustart, "utime").' ms';
+
+        $file_added = $this->content_folder;
+        $technical = new Technical(false);
+        $checkdisk = $technical->server_space();
+
+
+
+        $current_entrie = 0;
+        $total_entries = count($file_added) + count($file_changed);
+        echo json_encode(array('status' => 0, 'progress' => 0, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Analyzing...'));
+
+        ob_flush();
+        flush();
+        ////
+        //// SUSPICIOUS PROCESS STEP 1
+        ////
+        $searchforArr = Config::SUSPICIOUS_ARR;
+        $suspicious_file = array();
+        $step = 0;
+        foreach ($file_added as $added)
+        {
+          $contents = file_get_contents($added['path']);
+          foreach ($searchforArr as $searchfor)
+          {
+            $pattern = preg_quote($searchfor, '/');
+            $detected = $pattern;
+            // finalise the regular expression, matching the whole line
+            $pattern = "/^.*$pattern.*\$/m";
+            if(preg_match_all($pattern, $contents, $matches))
+            {
+              $added['suspicious'] = implode("\n", $matches[0]);
+              array_push($suspicious_file, $added);
+              // echo "Files: ".$added['filename']." - Found matches:\n";
+              // echo implode("\n", $matches[0]);
+            }
+          }
+          $current_entrie++;
+          if ($step == $step_max) {
+            echo json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100),2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Analyzing...'));
+          } else if ($step < $step_max) {
+            $step++;
+          } else {
+            $step = 0;
+          }
+          ob_flush();
+          flush();
+          sleep(0.000166667);
+        }
+        ////
+        //// SUSPICIOUS PROCESS STEP 2
+        ////
+        $step = 0;
+        foreach ($file_changed as $modified)
+        {
+          $contents = file_get_contents('../..'.$modified['path']);
+          foreach ($searchforArr as $searchfor)
+          {
+            $pattern = preg_quote($searchfor, '/');
+            $detected = $pattern;
+            // finalise the regular expression, matching the whole line
+            $pattern = "/^.*$pattern.*\$/m";
+            if(preg_match_all($pattern, $contents, $matches))
+            {
+              $modified['suspicious'] = implode("\n", $matches[0]);
+              array_push($suspicious_file, $modified);
+
+            }
+          }
+          $current_entrie++;
+          if ($step == $step_max) {
+              echo json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100), 2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Analyzing...'));
+          }
+          else if ($step < $step_max)
+          {
+            $step++;
+          }
+          else
+          {
+            $step = 0;
+          }
+
+          ob_flush();
+          flush();
+          sleep(0.000166667);
+        }
+        echo json_encode(array('status' => 0, 'progress' => 100, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Analyzing...'));
+        ob_flush();
+        flush();
+
+        if (Config::SEND_MAIL)
+        {
+          $mail_result = $this->send_email($file_changed, $file_removed, $file_added, count($file_no_change), false, $checkdisk, $suspicious_file);
+        } else {
+          $mail_result = false;
+        }
+        if (Config::HANGOUT_MSG)
+        {
+          $total_files = count($file_changed) + count($file_removed) + count($file_no_change) + count($file_added);
+          $hangout_msg = "PimDNA Comparison for ".$_SERVER['SERVER_NAME']."\n\n";
+          $hangout_msg .= "Comparison made the *". date('d-m-Y')."* at *".date('H:i:s')."*\n";
+          $hangout_msg .= "```\n";
+          $hangout_msg .= " - ". count($file_changed)." Changed Files,\n";
+          $hangout_msg .= " - ". count($file_removed)." Removed Files,\n";
+          $hangout_msg .= " - ". count($file_added)." Added Files,\n";
+          $hangout_msg .= " - ". count($suspicious_file)." Suspicious Detections within modified/added files.\n";
+          $hangout_msg .= "``` \n";
+          $hangout_msg .= "Total of *".$total_files."* files processed.\n";
+          $hangout_msg .= "Report made in *$time_processed*. \n\n";
+
+          $hangout_msg .= "Please refer to the email report for more information.";
+
+
+          $this->utilities->send_hg_msg(1, $hangout_msg);
+        }
+
+        $args = array(
+          'file_changed_count'    => count($file_changed),
+          'file_modified'         => $file_changed,
+          'file_removed_count'    => count($file_removed),
+          'file_removed'          => $file_removed,
+          'file_no_change_count'  => count($file_no_change),
+          'time_processed'        => $time_processed,
+          'file_added_count'      => count($file_added),
+          'file_added'            => $file_added,
+          'mail_result'           => $mail_result,
+          'files_suspicious'      => $suspicious_file,
+        );
+
+        echo json_encode(array('status' => 1, 'datas' => $args));
+        ob_flush();
+        flush();
+
+
+
       }
-
-      $args = array(
-        'file_changed_count'    => count($file_changed),
-        'file_modified'         => $file_changed,
-        'file_removed_count'    => count($file_removed),
-        'file_removed'          => $file_removed,
-        'file_no_change_count'  => count($file_no_change),
-        'time_processed'        => $time_processed,
-        'file_added_count'      => count($file_added),
-        'file_added'            => $file_added,
-        'test'                  => $test,
-        'mail_result'           => $mail_result,
-        'files_suspicious'      => $suspicious_file,
-      );
-      if (Config::HANGOUT_MSG)
-      {
-        $total_files = count($file_changed) + count($file_removed) + count($file_no_change) + count($file_added);
-        $hangout_msg = "PimDNA Comparison for ".$_SERVER['SERVER_NAME']."\n\n";
-        $hangout_msg .= "Comparison made the ". date('d-m-Y')." at ".date('H:i:s')."\n";
-        $hangout_msg .= "```\n";
-        $hangout_msg .= " - ". count($file_changed)." Changed Files,\n";
-        $hangout_msg .= " - ". count($file_removed)." Removed Files,\n";
-        $hangout_msg .= " - ". count($file_added)." Added Files,\n";
-        $hangout_msg .= " - ". count($suspicious_file)." Suspicious Detections within modified/added files.\n";
-        $hangout_msg .= "``` \n";
-        $hangout_msg .= "Total of *".$total_files."* files processed.\n";
-        $hangout_msg .= "Report made in *$time_processed*. \n\n";
-
-        $hangout_msg .= "Please refer to the email report for more information.";
-
-        $this->send_hg_msg(1, $hangout_msg);
-      }
-
+    }
+    public function results_bis() {
+      $args = json_decode($_POST['args_data'],true);
       View::renderTemplate('Md5/result.php', $args);
 
     }
 
     public function compare_cron()
     {
-      if ($_POST['login'] == '179832606881eb45817a6ca11be3aacd' && $_POST['password'] == 'd8be8632e84115f22df5cb55f2c24a2b')
+      if ($_POST['token'] == $this->utilities->getToken())
       // if (true)
       {
           // $_POST['contact'] = false;
           // var_export();
           ini_set("memory_limit", "-1");
           set_time_limit(0);
+          ignore_user_abort(true);
 
           $file_no_change = array();
           $file_changed = array();
           $file_removed = array();
+
           $rustart = getrusage();
 
 
@@ -393,17 +456,12 @@ class Md5 extends \Core\Controller
           }
 
           $ru = getrusage();
-          $time_processed =  $this->rutime($ru, $rustart, "utime").' ms';
+          $time_processed =  $this->utilities->rutime($ru, $rustart, "utime").' ms';
           $test = $file_changed;
           $file_added = $this->content_folder;
-          $directory = dirname(__FILE__);
-          $checkdisk = array(
-            'total_space' => disk_total_space($directory),
-            'free_space'  => disk_free_space($directory),
-            'used_space'  => disk_total_space($directory)-disk_free_space($directory),
-            'percent'     => ((disk_total_space($directory)-disk_free_space($directory))/disk_total_space($directory))*100,
-          );
-          flush();
+          $technical = new Technical(false);
+          $checkdisk = $technical->server_space();
+
           $searchforArr = Config::SUSPICIOUS_ARR;
           $suspicious_file = array();
           foreach ($file_added as $added)
@@ -423,6 +481,8 @@ class Md5 extends \Core\Controller
                 // echo implode("\n", $matches[0]);
               }
             }
+            flush();
+            sleep(0.000166667);
           }
 
           foreach ($file_changed as $modified)
@@ -441,6 +501,8 @@ class Md5 extends \Core\Controller
 
               }
             }
+            flush();
+            sleep(0.000166667);
           }
 
           ob_flush();
@@ -472,7 +534,7 @@ class Md5 extends \Core\Controller
 
             $hangout_msg .= "Please refer to the email report for more information.";
 
-            $this->send_hg_msg(1, $hangout_msg);
+            $this->utilities->send_hg_msg(1, $hangout_msg);
           }
 
 
@@ -487,12 +549,13 @@ class Md5 extends \Core\Controller
 
     public function generate_cron()
     {
-      if ($_POST['login'] == '179832606881eb45817a6ca11be3aacd' && $_POST['password'] == 'd8be8632e84115f22df5cb55f2c24a2b')
+      if ($_POST['token'] == $this->utilities->getToken())
       {
-
         ignore_user_abort(true);
         ini_set("memory_limit", "-1");
         set_time_limit(0);
+
+
         $dir = '../..';
         $this->listFolder($dir);
 
@@ -514,8 +577,9 @@ class Md5 extends \Core\Controller
             unset($this->content_folder[$index]);
             //
             // ob_flush();
-            // flush();
+            flush();
             sleep(0.000166667);
+
           }
           fclose($filesave);
         }
@@ -529,7 +593,7 @@ class Md5 extends \Core\Controller
         {
           $hangout_msg = "PimDNA Report\n\n";
           $hangout_msg .= "Generation made for ".$_SERVER['SERVER_NAME']." the *".date('d-m-Y')."* at *".date('H:i:s')."*.";
-          $this->send_hg_msg(0, $hangout_msg);
+          $this->utilities->send_hg_msg(0, $hangout_msg);
         }
 
         return true;
@@ -643,9 +707,9 @@ class Md5 extends \Core\Controller
       if ($checkdisk)
       {
         $message .= '<hr>';
-        $message .= '<p><span style="font-weight:bold;">Total Disk Space:</span> '.$this->formatBytes($checkdisk['total_space']).' </p>';
-        $message .= '<p><span style="font-weight:bold;">Disk Free:</span> '.$this->formatBytes($checkdisk['free_space']).' </p>';
-        $message .= '<p><span style="font-weight:bold;">Disk Overview:</span> '.(number_format($checkdisk['percent'], 2)).'% used </p>';
+        $message .= '<p><span style="font-weight:bold;">Total Disk Space:</span> '.$this->utilities->formatBytes($checkdisk['total_space']).' </p>';
+        $message .= '<p><span style="font-weight:bold;">Disk Free:</span> '.$this->utilities->formatBytes($checkdisk['free_space']).' </p>';
+        $message .= '<p><span style="font-weight:bold;">Disk Overview:</span> '.(number_format($checkdisk['percent_space'], 2)).'% used </p>';
       }
 
       $message .= '<hr>';
@@ -768,27 +832,6 @@ class Md5 extends \Core\Controller
       }
     }
 
-    private function listFolderFiles($dir)
-    {
-
-      $ffs = scandir($dir);
-
-      unset($ffs[array_search('.', $ffs, true)]);
-      unset($ffs[array_search('..', $ffs, true)]);
-
-      // prevent empty ordered elements
-      if (count($ffs) < 1)
-          return;
-
-      $this->listfile .= '<ol>';
-      foreach($ffs as $ff){
-          $this->listfile .= '<li>'.$ff;
-          if(is_dir($dir.'/'.$ff)) $this->listFolderFiles($dir.'/'.$ff);
-          $this->listfile .= '</li>';
-      }
-      $this->listfile .= '</ol>';
-    }
-
     private function listFolder($dir)
     {
       $tmp_content = scandir($dir);
@@ -809,33 +852,30 @@ class Md5 extends \Core\Controller
       // array_push($this->content_folder, $tmp_list_file);
     }
 
-    public function checkConnexion()
+    public function test()
     {
-      session_start();
-      if (!isset($_SESSION) || empty($_SESSION))
-      {
-          header('Location: /pimdna/public/home/login');
-          exit();
-      } else {
-        if (time() > $_SESSION['expire'])
-        {
-            session_destroy();
-            $_SESSION = [];
-            header('Location: /pimdna/public/home/login');
-        }
-      }
+
+
     }
 
-    public function formatBytes($bytes, $precision = 2)
-    {
-        $units = array('B', 'KB', 'MB', 'GB', 'TB');
+    public function test_bis() {
+      if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
 
-        $bytes = max($bytes, 0);
-        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
-        $pow = min($pow, count($units) - 1);
+          $total = 25;
+          $i = 0;
 
-        $bytes /= pow(1024, $pow);
+          echo json_encode(array('progress' => 0, 'count' => $i, 'total' => $total));
+          flush();
+          ob_flush();
 
-        return round($bytes, $precision) . ' ' . $units[$pow];
+          while ($i < $total) {
+              $i++;
+              echo json_encode(array('progress' => (($i/$total)*100), 'count' => $i, 'total' => $total));
+              flush();
+              ob_flush();
+              sleep(1);
+          }
+          exit();
+      }
     }
 }

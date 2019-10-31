@@ -27,8 +27,8 @@ $router = new Core\Router();
 
 // Add the routes
 $router->add('home', ['controller' => 'Home', 'action' => 'index']);
-$router->add('checklogin', ['controller' => 'Home', 'action' => 'checklogin']);
-$router->add('', ['controller' => 'Home', 'action' => 'login']);
+$router->add('checklogin', ['controller' => 'Login', 'action' => 'checklogin']);
+$router->add('', ['controller' => 'Login', 'action' => 'login']);
 $router->add('phpinfo', ['controller' => 'Phpinfo', 'action' => 'index']);
 $router->add('md5', ['controller' => 'Md5', 'action' => 'index']);
 $router->add('md5/results', ['controller' => 'Md5', 'action' => 'results']);
@@ -39,7 +39,15 @@ $router->add('md5/generate_cron', ['controller' => 'Md5', 'action' => 'generate_
 
 $router->add('delete', ['controller' => 'Delete', 'action' => 'index']);
 $router->add('delete/del', ['controller' => 'Delete', 'action' => 'del']);
-$router->add('test', ['controller' => 'Home', 'action' => 'test']);
+
+$router->add('settings', ['controller' => 'Settings', 'action' => 'index']);
+
+
+$router->add('md5/generated', ['controller' => 'Md5', 'action' => 'index_generation']);
+
+
+$router->add('md5/new_results', ['controller' => 'Md5', 'action' => 'results_bis']);
+
 
 $router->add('{controller}/{action}');
 
