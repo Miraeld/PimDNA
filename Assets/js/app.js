@@ -7,6 +7,7 @@ $(document).ready(function () {
 
   $('.btn-generate').on('click', function (e) {
     e.preventDefault();
+    $('.generation_process .card-header h3').text('Generation of .pdna file');
     $('.btn-generate').html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating...');
     $('.generation_process').slideDown();
     var jsonResponse = '', lastResponseLen = false;
@@ -24,11 +25,23 @@ $(document).ready(function () {
                         thisResponse = response.substring(lastResponseLen);
                         lastResponseLen = response.length;
                     }
-                    
-                    jsonResponse = JSON.parse(thisResponse);
 
-                    $('.ajax-res p').text('Processed '+jsonResponse.count+' of '+jsonResponse.total);
-                    $(".progress-bar").css('width', jsonResponse.progress+'%').text(jsonResponse.progress+'%');
+                    console.log(thisResponse);
+                    var strLines = thisResponse.split("--");
+                    strLines.pop();
+                    for (var i in strLines) {
+                      try {
+                        var jsonResponse = JSON.parse(strLines[i]);
+                        $('.ajax-res p').text('Processed '+jsonResponse.count+' of '+jsonResponse.total);
+                        $(".progress-bar").css('width', jsonResponse.progress+'%').text(jsonResponse.progress+'%');
+                      }
+                      catch (err) {
+
+                      }
+
+                    }
+
+
                 }
             },
             success: function(text) {
@@ -46,6 +59,7 @@ $(document).ready(function () {
 
   $('.btn-compare').on('click', function (e) {
     e.preventDefault();
+    $('.generation_process .card-header h3').text('Analyzing the website');
     $('.btn-compare').html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Comparation...');
     $('.generation_process').slideDown();
     var jsonResponse = '', lastResponseLen = false;
@@ -64,21 +78,35 @@ $(document).ready(function () {
                         lastResponseLen = response.length;
                     }
 
-                    jsonResponse = JSON.parse(thisResponse);
-                    if (jsonResponse.status == 1)
-                    {
+                    // jsonResponse = JSON.parse(thisResponse);
+                    // console.log(thisResponse);
+                    var strLines = thisResponse.split("--");
+                    strLines.pop();
 
-                      $('.args_data').val(JSON.stringify(jsonResponse.datas));
+                    for (var i in strLines) {
+                      try {
+                        var jsonResponse = JSON.parse(strLines[i]);
+                        // console.log(jsonResponse);
+                        console.log('Status : ' +jsonResponse.status);
+                        if (jsonResponse.status == 1)
+                        {
 
-                      $('#compare_result').submit();
+                          // console.log(JSON.stringify(jsonResponse.datas));
+                          $('.args_data').val(JSON.stringify(jsonResponse.datas));
 
+                          $('#compare_result').submit();
+
+                        }
+                        else
+                        {
+                          // console.log(jsonResponse);
+                          $('.ajax-res p').text('Processed '+jsonResponse.count+' of '+jsonResponse.total + ' - Step: ' + jsonResponse.type);
+                          $(".progress-bar").css('width', jsonResponse.progress+'%').text(jsonResponse.progress+'%');
+                        }
+                      } catch(err) {
+
+                      }
                     }
-                    else
-                    {
-                      $('.ajax-res p').text('Processed '+jsonResponse.count+' of '+jsonResponse.total + ' - Step: ' + jsonResponse.type);
-                      $(".progress-bar").css('width', jsonResponse.progress+'%').text(jsonResponse.progress+'%');
-                    }
-
                 }
             },
             success: function(text) {

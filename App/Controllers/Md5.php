@@ -31,7 +31,7 @@ class Md5 extends \Core\Controller
 
     public function __construct()
     {
-      
+
         $this->listfile = '';
         $this->content_folder = array();
         $this->utilities = new Utilities();
@@ -110,11 +110,12 @@ class Md5 extends \Core\Controller
     public function generate()
     {
 
-      if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+      // if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
         ignore_user_abort(true);
         ini_set("memory_limit", "-1");
         set_time_limit(0);
-
+        $step_current = 0;
+        $step_max = 50;
 
         $dir = '../..';
         $this->listFolder($dir);
@@ -124,7 +125,7 @@ class Md5 extends \Core\Controller
           $total_entries = count($this->content_folder);
           $current_entrie = 0;
 
-          echo json_encode(array('progress' => 0, 'count' => $current_entrie, 'total' => $total_entries));
+          echo json_encode(array('progress' => 0, 'count' => $current_entrie, 'total' => $total_entries)).'--';
           flush();
           ob_flush();
 
@@ -144,14 +145,26 @@ class Md5 extends \Core\Controller
 
             $this->content_folder[$index] = null;
             unset($this->content_folder[$index]);
+            if ($step_current == round($total_entries/$step_max)) {
+                echo json_encode(array('progress' => number_format((($current_entrie/$total_entries)*100), 2), 'count' => $current_entrie, 'total' => $total_entries)).'--';
+            } else if ($step_current < round($total_entries/$step_max)) {
+              $step_current++;
+            } else {
+              $step_current = 0;
+            }
 
-            echo json_encode(array('progress' => number_format((($current_entrie/$total_entries)*100), 2), 'count' => $current_entrie, 'total' => $total_entries));
 
+            // sleep(0.05);
             sleep(0.000166667);
             ob_flush();
             flush();
           }
+
           fclose($filesave);
+          echo json_encode(array('progress' => 100, 'count' => $current_entrie, 'total' => $total_entries)).'--';
+          sleep(1);
+          ob_flush();
+          flush();
           if (Config::HANGOUT_MSG)
           {
             $hangout_msg = "PimDNA Report\n\n";
@@ -159,7 +172,7 @@ class Md5 extends \Core\Controller
             $this->utilities->send_hg_msg(0, $hangout_msg);
           }
         }
-      }
+      // }
     }
 
     public function results()
@@ -174,12 +187,13 @@ class Md5 extends \Core\Controller
 
     public function compare()
     {
-      if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+      // if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
         ignore_user_abort(true);
         ini_set("memory_limit", "-1");
         set_time_limit(0);
 
         $current_entrie = 0;
+        $current_step = 0;
         $step_max = 50;
 
         $file_no_change = array();
@@ -201,10 +215,10 @@ class Md5 extends \Core\Controller
         }
 
         $total_entries = count($array_fileline);
-        echo json_encode(array('status' => 0, 'progress' => 0, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Init...'));
+        echo json_encode(array('status' => 0, 'progress' => 0, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Init...')).'--';
         flush();
         ob_flush();
-        $step  = 0;
+
         foreach ($array_fileline as $index => $value)
         {
           $val = explode(' || ', $value);
@@ -233,22 +247,25 @@ class Md5 extends \Core\Controller
 
           }
           $current_entrie++;
-          if ($step == $step_max)
+
+          if ($current_step == round($total_entries/$step_max))
           {
-              echo json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100),2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Comparing...'));
+            $dd = json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100),2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Comparing...'));
+            echo  $dd.'--';
           }
-          else if ($step < $step_max)
+          else if ($current_step < round($total_entries/$step_max))
           {
-            $step++;
+            $current_step++;
           }
           else
           {
-            $step = 0;
+            $current_step = 0;
           }
 
 
           ob_flush();
           flush();
+          // sleep(1);
           sleep(0.000166667);
         }
 
@@ -263,7 +280,7 @@ class Md5 extends \Core\Controller
 
         $current_entrie = 0;
         $total_entries = count($file_added) + count($file_changed);
-        echo json_encode(array('status' => 0, 'progress' => 0, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Analyzing...'));
+        echo json_encode(array('status' => 0, 'progress' => 0, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Analyzing...')).'--';
 
         ob_flush();
         flush();
@@ -272,74 +289,79 @@ class Md5 extends \Core\Controller
         ////
         $searchforArr = Config::SUSPICIOUS_ARR;
         $suspicious_file = array();
-        $step = 0;
+        $current_step = 0;
         foreach ($file_added as $added)
         {
           $contents = file_get_contents($added['path']);
-          foreach ($searchforArr as $searchfor)
-          {
-            $pattern = preg_quote($searchfor, '/');
-            $detected = $pattern;
-            // finalise the regular expression, matching the whole line
-            $pattern = "/^.*$pattern.*\$/m";
-            if(preg_match_all($pattern, $contents, $matches))
-            {
-              $added['suspicious'] = implode("\n", $matches[0]);
-              array_push($suspicious_file, $added);
-              // echo "Files: ".$added['filename']." - Found matches:\n";
-              // echo implode("\n", $matches[0]);
-            }
-          }
+          // foreach ($searchforArr as $searchfor)
+          // {
+          //   $pattern = preg_quote($searchfor, '/');
+          //   $detected = $pattern;
+          //   // finalise the regular expression, matching the whole line
+          //   $pattern = "/^.*$pattern.*\$/m";
+          //   if(preg_match_all($pattern, $contents, $matches))
+          //   {
+          //     $added['suspicious'] = implode("\n", $matches[0]);
+          //     array_push($suspicious_file, $added);
+          //     // echo "Files: ".$added['filename']." - Found matches:\n";
+          //     // echo implode("\n", $matches[0]);
+          //   }
+          // }
           $current_entrie++;
-          if ($step == $step_max) {
-            echo json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100),2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Analyzing...'));
-          } else if ($step < $step_max) {
-            $step++;
+          if ($current_step == round($total_entries/$step_max)) {
+            $dd = json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100),2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Analyzing...'));
+            echo $dd .'--';
+          } else if ($current_step < round($total_entries/$step_max)) {
+            $current_step++;
           } else {
-            $step = 0;
+            $current_step = 0;
           }
           ob_flush();
           flush();
-          sleep(0.000166667);
+
+          // sleep(0.000166667);
+          sleep(1);
         }
         ////
         //// SUSPICIOUS PROCESS STEP 2
         ////
-        $step = 0;
+        $current_step = 0;
         foreach ($file_changed as $modified)
         {
-          $contents = file_get_contents('../..'.$modified['path']);
-          foreach ($searchforArr as $searchfor)
-          {
-            $pattern = preg_quote($searchfor, '/');
-            $detected = $pattern;
-            // finalise the regular expression, matching the whole line
-            $pattern = "/^.*$pattern.*\$/m";
-            if(preg_match_all($pattern, $contents, $matches))
-            {
-              $modified['suspicious'] = implode("\n", $matches[0]);
-              array_push($suspicious_file, $modified);
-
-            }
-          }
+          // $contents = file_get_contents('../..'.$modified['path']);
+          // foreach ($searchforArr as $searchfor)
+          // {
+          //   $pattern = preg_quote($searchfor, '/');
+          //   $detected = $pattern;
+          //   // finalise the regular expression, matching the whole line
+          //   $pattern = "/^.*$pattern.*\$/m";
+          //   if(preg_match_all($pattern, $contents, $matches))
+          //   {
+          //     $modified['suspicious'] = implode("\n", $matches[0]);
+          //     array_push($suspicious_file, $modified);
+          //
+          //    }
+          // }
           $current_entrie++;
-          if ($step == $step_max) {
-              echo json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100), 2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Analyzing...'));
+          if ($current_step == round($total_entries/$step_max)) {
+              $dd = json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100), 2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Analyzing...'));
+              echo $dd .'--';
           }
-          else if ($step < $step_max)
+          else if ($current_step < round($total_entries/$step_max))
           {
-            $step++;
+            $current_step++;
           }
           else
           {
-            $step = 0;
+            $current_step = 0;
           }
 
           ob_flush();
           flush();
-          sleep(0.000166667);
+          sleep(1);
+          // sleep(0.000166667);
         }
-        echo json_encode(array('status' => 0, 'progress' => 100, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Analyzing...'));
+        echo json_encode(array('status' => 0, 'progress' => 100, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Preparing results...')).'--';
         ob_flush();
         flush();
 
@@ -382,13 +404,14 @@ class Md5 extends \Core\Controller
           'files_suspicious'      => $suspicious_file,
         );
 
-        echo json_encode(array('status' => 1, 'datas' => $args));
+
+        echo json_encode(array('status' => 1, 'datas' => $args)) .'--';
         ob_flush();
         flush();
 
 
 
-      }
+      // }
     }
     public function results_bis() {
       $args = json_decode($_POST['args_data'],true);
@@ -399,111 +422,123 @@ class Md5 extends \Core\Controller
     public function compare_cron()
     {
       if ($_POST['token'] == $this->utilities->getToken())
-      // if (true)
       {
-          // $_POST['contact'] = false;
-          // var_export();
           ini_set("memory_limit", "-1");
           set_time_limit(0);
           ignore_user_abort(true);
-
+          $error = array('status' => 0, 'message' => 'Success');
           $file_no_change = array();
           $file_changed = array();
           $file_removed = array();
 
           $rustart = getrusage();
 
+          try {
+            $dir = '../..';
+            $this->listFolder($dir);
 
+            $files = scandir('../dna/', SCANDIR_SORT_DESCENDING);
+            $dna_reference = $files[0];
+            $filename = '../dna/'.$dna_reference;
+            $dna_file = fopen($filename, 'r');
+            if ($dna_file)
+            {
+              $array_fileline = explode("\n", fread($dna_file, filesize($filename)));
+            }
+            $ref_dna = array();
+
+          } catch (Exception $e) {
+            $error = array('status' => 1, 'message' => 'An error occured during the Init process');
+          }
           // $dir = $_SERVER['DOCUMENT_ROOT'];
-          $dir = '../..';
-          $this->listFolder($dir);
+          try {
+            foreach ($array_fileline as $index => $value) {
+              $val = explode(' || ', $value);
+              if (!empty($val[0])) {
+                $existing_index = ($this->search_in_dna($val[0]));
 
-          $files = scandir('../dna/', SCANDIR_SORT_DESCENDING);
-          $dna_reference = $files[0];
-          $filename = '../dna/'.$dna_reference;
-          $dna_file = fopen($filename, 'r');
-          if ($dna_file)
-          {
-            $array_fileline = explode("\n", fread($dna_file, filesize($filename)));
-          }
-          $ref_dna = array();
-          foreach ($array_fileline as $index => $value) {
-            $val = explode(' || ', $value);
-            if (!empty($val[0])) {
-              $existing_index = ($this->search_in_dna($val[0]));
-
-              if ($existing_index) {
-                if (md5_file($this->content_folder[$existing_index]['path']) == $val[1]) {
-                  // echo "MD5 SIMILAR<br>";
-                  array_push($file_no_change, array('path' => $val[0]));
+                if ($existing_index) {
+                  if (md5_file($this->content_folder[$existing_index]['path']) == $val[1]) {
+                    // echo "MD5 SIMILAR<br>";
+                    array_push($file_no_change, array('path' => $val[0]));
+                  } else {
+                    // echo "MD5 DIFFERENT<br>";
+                    array_push($file_changed, array('path' => $val[0]));
+                  }
+                  $this->content_folder[$existing_index] = null;
+                  unset($this->content_folder[$existing_index]);
                 } else {
-                  // echo "MD5 DIFFERENT<br>";
-                  array_push($file_changed, array('path' => $val[0]));
+                  // echo "FILE REMOVED<br>";
+                  array_push($file_removed, array('path' => $val[0]));
+                  $this->content_folder[$existing_index] = null;
+                  unset($this->content_folder[$existing_index]);
                 }
-                $this->content_folder[$existing_index] = null;
-                unset($this->content_folder[$existing_index]);
-              } else {
-                // echo "FILE REMOVED<br>";
-                array_push($file_removed, array('path' => $val[0]));
-                $this->content_folder[$existing_index] = null;
-                unset($this->content_folder[$existing_index]);
-              }
 
+              }
+              ob_flush();
+              flush();
+              sleep(0.0005);
             }
-            // ob_flush();
-            flush();
-            sleep(0.0005);
+          } catch (Exception $e) {
+            $error = array('status' => 1, 'message' => 'An error occured during the Compare process');
           }
 
-          $ru = getrusage();
-          $time_processed =  $this->utilities->rutime($ru, $rustart, "utime").' ms';
-          $test = $file_changed;
-          $file_added = $this->content_folder;
-          $technical = new Technical(false);
-          $checkdisk = $technical->server_space();
+          try {
+            $ru = getrusage();
+            $time_processed =  $this->utilities->rutime($ru, $rustart, "utime").' ms';
+            $test = $file_changed;
+            $file_added = $this->content_folder;
+            $technical = new Technical(false);
+            $checkdisk = $technical->server_space();
 
-          $searchforArr = Config::SUSPICIOUS_ARR;
-          $suspicious_file = array();
-          foreach ($file_added as $added)
-          {
-            $contents = file_get_contents($added['path']);
-            foreach ($searchforArr as $searchfor)
+            $searchforArr = Config::SUSPICIOUS_ARR;
+            $suspicious_file = array();
+            foreach ($file_added as $added)
             {
-              $pattern = preg_quote($searchfor, '/');
-              $detected = $pattern;
-              // finalise the regular expression, matching the whole line
-              $pattern = "/^.*$pattern.*\$/m";
-              if(preg_match_all($pattern, $contents, $matches))
-              {
-                $added['suspicious'] = implode("\n", $matches[0]);
-                array_push($suspicious_file, $added);
-                // echo "Files: ".$added['filename']." - Found matches:\n";
-                // echo implode("\n", $matches[0]);
-              }
+              // $contents = file_get_contents($added['path']);
+              // foreach ($searchforArr as $searchfor)
+              // {
+              //   $pattern = preg_quote($searchfor, '/');
+              //   $detected = $pattern;
+              //   // finalise the regular expression, matching the whole line
+              //   $pattern = "/^.*$pattern.*\$/m";
+              //   if(preg_match_all($pattern, $contents, $matches))
+              //   {
+              //     $added['suspicious'] = implode("\n", $matches[0]);
+              //     array_push($suspicious_file, $added);
+              //     // echo "Files: ".$added['filename']." - Found matches:\n";
+              //     // echo implode("\n", $matches[0]);
+              //   }
+              // }
+              ob_flush();
+              flush();
+              sleep(0.000166667);
             }
-            flush();
-            sleep(0.000166667);
-          }
 
-          foreach ($file_changed as $modified)
-          {
-            $contents = file_get_contents('../..'.$modified['path']);
-            foreach ($searchforArr as $searchfor)
+            foreach ($file_changed as $modified)
             {
-              $pattern = preg_quote($searchfor, '/');
-              $detected = $pattern;
-              // finalise the regular expression, matching the whole line
-              $pattern = "/^.*$pattern.*\$/m";
-              if(preg_match_all($pattern, $contents, $matches))
-              {
-                $modified['suspicious'] = implode("\n", $matches[0]);
-                array_push($suspicious_file, $modified);
-
-              }
+              // $contents = file_get_contents('../..'.$modified['path']);
+              // foreach ($searchforArr as $searchfor)
+              // {
+              //   $pattern = preg_quote($searchfor, '/');
+              //   $detected = $pattern;
+              //   // finalise the regular expression, matching the whole line
+              //   $pattern = "/^.*$pattern.*\$/m";
+              //   if(preg_match_all($pattern, $contents, $matches))
+              //   {
+              //     $modified['suspicious'] = implode("\n", $matches[0]);
+              //     array_push($suspicious_file, $modified);
+              //
+              //   }
+              // }
+              ob_flush();
+              flush();
+              sleep(0.000166667);
             }
-            flush();
-            sleep(0.000166667);
+          } catch (Exception $e) {
+            $error = array('status' => 1, 'message' => 'An error occured during the Analyzing process');
           }
+
 
           ob_flush();
           flush();
@@ -520,35 +555,43 @@ class Md5 extends \Core\Controller
 
           if (Config::HANGOUT_MSG)
           {
-            $total_files = count($file_changed) + count($file_removed) + count($file_no_change) + count($file_added);
-            $hangout_msg = "PimDNA Comparison for ".$_SERVER['SERVER_NAME']."\n\n";
-            $hangout_msg .= "Comparison made the ". date('d-m-Y')." at ".date('H:i:s')."\n";
-            $hangout_msg .= "```\n";
-            $hangout_msg .= " - ". count($file_changed)." Changed Files,\n";
-            $hangout_msg .= " - ". count($file_removed)." Removed Files,\n";
-            $hangout_msg .= " - ". count($file_added)." Added Files,\n";
-            $hangout_msg .= " - ". count($suspicious_file)." Suspicious Detections within modified/added files.\n";
-            $hangout_msg .= "``` \n";
-            $hangout_msg .= "Total of *".$total_files."* files processed.\n";
-            $hangout_msg .= "Report made in *$time_processed*. \n\n";
+            if ($error['status'] == 0) {
+              $total_files = count($file_changed) + count($file_removed) + count($file_no_change) + count($file_added);
+              $hangout_msg = "PimDNA Comparison for ".$_SERVER['SERVER_NAME']."\n\n";
+              $hangout_msg .= "Comparison made the ". date('d-m-Y')." at ".date('H:i:s')."\n";
+              $hangout_msg .= "```\n";
+              $hangout_msg .= " - ". count($file_changed)." Changed Files,\n";
+              $hangout_msg .= " - ". count($file_removed)." Removed Files,\n";
+              $hangout_msg .= " - ". count($file_added)." Added Files,\n";
+              $hangout_msg .= " - ". count($suspicious_file)." Suspicious Detections within modified/added files.\n";
+              $hangout_msg .= "``` \n";
+              $hangout_msg .= "Total of *".$total_files."* files processed.\n";
+              $hangout_msg .= "Report made in *$time_processed*. \n\n";
 
-            $hangout_msg .= "Please refer to the email report for more information.";
+              $hangout_msg .= "Please refer to the email report for more information.";
+
+            }
+            else if ($error['status'] == 1)
+            {
+              $hangout_msg = "PimDNA *ERROR* Comparison for ".$_SERVER['SERVER_NAME']."\n\n";
+              $hangout_msg .= $error['message']."\n";
+            }
 
             $this->utilities->send_hg_msg(1, $hangout_msg);
           }
 
+          echo json_encode($error);
 
           return true;
 
 
-      } else {
-        return json_encode(array('status' => false, 'msg' => 'Wrong Username and password.'));
       }
 
     }
 
     public function generate_cron()
     {
+
       if ($_POST['token'] == $this->utilities->getToken())
       {
         ignore_user_abort(true);
@@ -560,29 +603,39 @@ class Md5 extends \Core\Controller
         $this->listFolder($dir);
 
         if ($this->content_folder) {
-          $total_entries = count($this->content_folder);
-          $filename_dna ="../dna/".date('d-m-Y-h-i-s').".pdna";
-          $filesave = fopen($filename_dna, 'w');
+          try {
+            $total_entries = count($this->content_folder);
+            $filename_dna ="../dna/".date('d-m-Y-h-i-s').".pdna";
+            $filesave = fopen($filename_dna, 'w');
 
-          foreach ($this->content_folder as $index => $info)
-          {
-
-            if (filesize($info['path']) < 2147483648)
+            foreach ($this->content_folder as $index => $info)
             {
-              $string =  str_replace('../..','', $info['path'])." || ".md5_file($info['path'])."\n";
-              fwrite($filesave, $string);
+
+              if (filesize($info['path']) < 2147483648)
+              {
+                $string =  str_replace('../..','', $info['path'])." || ".md5_file($info['path'])."\n";
+                fwrite($filesave, $string);
+              }
+
+              $this->content_folder[$index] = null;
+              unset($this->content_folder[$index]);
+              //
+              ob_flush();
+              flush();
+              sleep(0.000166667);
+
             }
-
-            $this->content_folder[$index] = null;
-            unset($this->content_folder[$index]);
-            //
-            // ob_flush();
-            flush();
-            sleep(0.000166667);
-
+            fclose($filesave);
+            $error  = false;
+          } catch (Exception $e) {
+            $error = true;
           }
-          fclose($filesave);
+
+
         }
+        ob_flush();
+        flush();
+
         // var_export();
         if (Config::SEND_MAIL)
         {
@@ -591,9 +644,21 @@ class Md5 extends \Core\Controller
 
         if (Config::HANGOUT_MSG)
         {
-          $hangout_msg = "PimDNA Report\n\n";
-          $hangout_msg .= "Generation made for ".$_SERVER['SERVER_NAME']." the *".date('d-m-Y')."* at *".date('H:i:s')."*.";
+          if ($error) {
+            $hangout_msg = "PimDNA Report\n\n";
+            $hangout_msg .= "An error has occured while generating the PDNA file for *".$_SERVER['SERVER_NAME']."* the *".date('d-m-Y')."* at *".date('H:i:s')."*.";
+          } else {
+            $hangout_msg = "PimDNA Report\n\n";
+            $hangout_msg .= "Generation made for ".$_SERVER['SERVER_NAME']." the *".date('d-m-Y')."* at *".date('H:i:s')."*.";
+
+          }
           $this->utilities->send_hg_msg(0, $hangout_msg);
+        }
+
+        if ($error) {
+          echo json_encode(array('status' => 0, 'message' => 'An error happened'));
+        } else {
+          echo json_encode(array('status' => 1, 'message' => 'Success'));
         }
 
         return true;
@@ -808,6 +873,8 @@ class Md5 extends \Core\Controller
         {
           return $index;
         }
+        flush();
+        ob_flush();
       }
       return null;
     }
