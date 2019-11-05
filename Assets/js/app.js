@@ -88,6 +88,7 @@ $(document).ready(function () {
                         var jsonResponse = JSON.parse(strLines[i]);
                         // console.log(jsonResponse);
                         console.log('Status : ' +jsonResponse.status);
+                        console.log(jsonResponse);
                         if (jsonResponse.status == 1)
                         {
 
@@ -120,6 +121,128 @@ $(document).ready(function () {
         });
   });
 
+  //////////////////////////////////
+  //////////////////////////////////
+  /////////// COMPARE V2 ///////////
+  //////////////////////////////////
+  //////////////////////////////////
+  $('.btn-compare_v2').on('click', function (e) {
+    e.preventDefault();
+    $('.generation_process .card-header h3').text('Comparing Process');
+    $('.generation_process').slideDown();
+    $('.ajax-res p').text('Initialization...');
+    var jsonResponse = '', lastResponseLen = false;
+    var start = new Date().getTime();
+    $.ajax({
+    	url: '/pimdna/public/md5/compare_init',
+    	success: function (response)
+    	{
+    		jsonResponse = JSON.parse(response);
+
+    		data_dna = JSON.stringify(jsonResponse['dna_array']);
+    		data_folder = JSON.stringify(jsonResponse['content_folder']);
+
+    		$.ajax({
+    			url: '/pimdna/public/md5/compare_compare',
+    			method: 'POST',
+    			data : { dna: data_dna, folder:data_folder },
+          xhrFields:
+          {
+            onprogress: function(e)
+            {
+              var thisResponse, response = e.currentTarget.response;
+              if(lastResponseLen === false) {
+                thisResponse = response;
+                lastResponseLen = response.length;
+              } else {
+                thisResponse = response.substring(lastResponseLen);
+                lastResponseLen = response.length;
+              }
+
+              var strLines = thisResponse.split("--");
+              strLines.pop();
+
+              for (var i in strLines) {
+                try {
+                  var jsonResponse = JSON.parse(strLines[i]);
+                  console.log(jsonResponse);
+                  if (jsonResponse.status == 0)
+                  {
+                    $('.ajax-res p').text('Processed '+jsonResponse.count+' of '+jsonResponse.total + ' - Step: ' + jsonResponse.type);
+                    $(".progress-bar").css('width', jsonResponse.progress+'%').text(jsonResponse.progress+'%');
+                  }
+                  else if (jsonResponse.status == 1)
+                  {
+                    console.log('status == 1');
+                    // jsonResponse = JSON.parse(response);
+                    if (!jsonResponse['error']) {
+                        data_file_added 		= JSON.stringify(jsonResponse['file_added']);
+                        data_file_no_change = JSON.stringify(jsonResponse['file_no_change']);
+                        data_file_changed 	= JSON.stringify(jsonResponse['file_changed']);
+                        data_file_removed 	= JSON.stringify(jsonResponse['file_removed']);
+
+                        $.ajax({
+                          url: '/pimdna/public/md5/compare_analyze',
+                          method: 'POST',
+                          data : {file_added: data_file_added, file_no_change: data_file_no_change, file_changed: data_file_changed, file_removed: data_file_removed},
+                          success: function (response)
+                          {
+                            jsonResponse = JSON.parse(response);
+                            console.log(jsonResponse);
+
+                            if (!jsonResponse['error']) {
+                                data_file_added 			= JSON.stringify(jsonResponse['file_added']);
+                                data_file_no_change 	= JSON.stringify(jsonResponse['file_no_change']);
+                                data_file_changed 		= JSON.stringify(jsonResponse['file_changed']);
+                                data_file_removed 		= JSON.stringify(jsonResponse['file_removed']);
+                                data_suspicious_file 	= JSON.stringify(jsonResponse['suspicious_file']);
+                                data_time_processed 	= new Date().getTime() - start +"ms";
+                                $.ajax({
+                                  url: '/pimdna/public/md5/compare_finalyze',
+                                  method: 'POST',
+                                  data: {file_added: data_file_added, file_no_change: data_file_no_change, file_changed: data_file_changed, file_removed: data_file_removed, suspicious_file: data_suspicious_file, time_processed: data_time_processed},
+                                  success: function (response)
+                                  {
+                                    jsonResponse = JSON.parse(response);
+
+                                    console.log(jsonResponse);
+                                    if (!jsonResponse.error)
+                                    {
+                                      $('.args_data').val(JSON.stringify(jsonResponse.datas));
+
+                                      $('#compare_result').submit();
+                                    }
+
+                                  }
+                                })
+                            }
+                          }
+                        })
+                    }
+
+                    console.log(jsonResponse);
+                  }
+                } catch (err) {
+
+                }
+              }
+            }
+          },
+
+
+    			success: function (response)
+    			{
+
+          }
+        });
+      }
+    });
+  })
+  //////////////////////////////////
+  //////////////////////////////////
+  /////////// COMPARE V2 ///////////
+  //////////////////////////////////
+  //////////////////////////////////
 
   $('.btn-login').on('click', function () {
     // $('.btn-login').preventDefault();

@@ -107,6 +107,9 @@
           <a href="/pimdna/public/md5/compare" class="btn btn-primary btn-compare" role="button">
             Compare MD5
           </a>
+          <a href="/pimdna/public/md5/compare_init" class="btn btn-primary btn-compare_v2" role="button">
+            Compare MD5 v2
+          </a>
           {% endif %}
 
 

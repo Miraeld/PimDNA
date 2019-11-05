@@ -48,6 +48,16 @@ $router->add('md5/generated', ['controller' => 'Md5', 'action' => 'index_generat
 
 $router->add('md5/new_results', ['controller' => 'Md5', 'action' => 'results_bis']);
 
+$router->add('test_one', ['controller' => 'Md5', 'action' => 'test_one']);
+$router->add('test_two', ['controller' => 'Md5', 'action' => 'test_two']);
+$router->add('md5/compare_test', ['controller' => 'Md5', 'action' => 'compare_test']);
+
+// NEW COMPARE
+$router->add('md5/compare_init', ['controller' => 'Md5', 'action' => 'compare_init']);
+$router->add('md5/compare_compare', ['controller' => 'Md5', 'action' => 'compare_compare']);
+$router->add('md5/compare_analyze', ['controller' => 'Md5', 'action' => 'compare_analyze']);
+$router->add('md5/compare_finalyze', ['controller' => 'Md5', 'action' => 'compare_finalyze']);
+
 
 $router->add('{controller}/{action}');
 

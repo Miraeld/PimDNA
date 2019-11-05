@@ -51,5 +51,5 @@ class Config
 
     const SUSPICIOUS_ARR = ['base64_decode','base64_encode','md5','eval(','gzinflate', 'str_rot_13'];
 
-    const DEV_MODE = false;
+    const DEV_MODE = true;
 }
