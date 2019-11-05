@@ -161,9 +161,11 @@ $(document).ready(function () {
 
               var strLines = thisResponse.split("--");
               strLines.pop();
-
+              // console.log(strLines);
+              console.log(strLines);
               for (var i in strLines) {
                 try {
+                  console.log(strLines[i]);
                   var jsonResponse = JSON.parse(strLines[i]);
                   console.log(jsonResponse);
                   if (jsonResponse.status == 0)
@@ -172,6 +174,7 @@ $(document).ready(function () {
                     $(".progress-bar").css('width', jsonResponse.progress+'%').text(jsonResponse.progress+'%');
                   }
                   else if (jsonResponse.status == 1)
+                  // else
                   {
                     console.log('status == 1');
                     // jsonResponse = JSON.parse(response);
@@ -222,17 +225,51 @@ $(document).ready(function () {
 
                     console.log(jsonResponse);
                   }
-                } catch (err) {
 
+                } catch (err)
+                {
+
+
+
+                      $.ajax({
+                        url: '/pimdna/public/md5/compare_analyze',
+                        success: function (response)
+                        {
+                          jsonResponse = JSON.parse(response);
+                          console.log(jsonResponse);
+
+                          if (!jsonResponse['error']) {
+                              data_file_added 			= JSON.stringify(jsonResponse['file_added']);
+                              data_file_no_change 	= JSON.stringify(jsonResponse['file_no_change']);
+                              data_file_changed 		= JSON.stringify(jsonResponse['file_changed']);
+                              data_file_removed 		= JSON.stringify(jsonResponse['file_removed']);
+                              data_suspicious_file 	= JSON.stringify(jsonResponse['suspicious_file']);
+                              data_time_processed 	= new Date().getTime() - start +"ms";
+                              $.ajax({
+                                url: '/pimdna/public/md5/compare_finalyze',
+                                method: 'POST',
+                                data: {file_added: data_file_added, file_no_change: data_file_no_change, file_changed: data_file_changed, file_removed: data_file_removed, suspicious_file: data_suspicious_file, time_processed: data_time_processed},
+                                success: function (response)
+                                {
+                                  jsonResponse = JSON.parse(response);
+
+                                  console.log(jsonResponse);
+                                  if (!jsonResponse.error)
+                                  {
+                                    $('.args_data').val(JSON.stringify(jsonResponse.datas));
+
+                                    $('#compare_result').submit();
+                                  }
+
+                                }
+                              })
+                          }
+                        }
+                      })
+                  
                 }
               }
             }
-          },
-
-
-    			success: function (response)
-    			{
-
           }
         });
       }

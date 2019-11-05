@@ -47,7 +47,7 @@ class Config
 
     const HANGOUT_MSG = true;
 
-    const SEND_MAIL = true;
+    const SEND_MAIL = false;
 
     const SUSPICIOUS_ARR = ['base64_decode','base64_encode','md5','eval(','gzinflate', 'str_rot_13'];
 

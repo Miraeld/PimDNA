@@ -1262,7 +1262,7 @@ class Md5 extends \Core\Controller
 
       $current_entrie = 0;
       $current_step = 0;
-      $step_max = 50;
+      $step_max = 1000;
 
       if (isset($_POST['dna']) && isset($_POST['folder']))
       {
@@ -1331,14 +1331,28 @@ class Md5 extends \Core\Controller
         $file_added = $this->content_folder;
         ob_flush();
         flush();
-        echo json_encode(array(
+        sleep(5);
+        $output = array(
           'status'          => 1,
           'error'           => false,
           'file_added'      => $file_added,
           'file_no_change'  => $file_no_change,
           'file_changed'    => $file_changed,
           'file_removed'    => $file_removed
-        )).'--';
+        );
+
+        echo json_encode($output).'--';
+
+        $filesave = fopen('../tmp/compare_compare_result.pdna', 'w');
+
+
+
+
+        fwrite($filesave, json_encode($output));
+
+
+        fclose($filesave);
+
 
       } else {
         echo json_encode(array('status' => 0, 'error'=> true, 'msg' => "Pas de POST value"));
@@ -1414,15 +1428,94 @@ class Md5 extends \Core\Controller
           sleep(0.000166667);
           // sleep(0.000166667);
         }
+        echo json_encode(array(
+          'error'           => false,
+          'file_added'      => $file_added,
+          'file_no_change'  => $file_no_change,
+          'file_changed'    => $file_changed,
+          'file_removed'    => $file_removed,
+          'suspicious_file' => $suspicious_file
+        ));
+      } else {
+        if (file_exists('../tmp/compare_compare_result.pdna'))
+        {
+          $file_content = file_get_contents('../tmp/compare_compare_result.pdna');
+          $file_content = json_decode($file_content,true);
+          
+
+          $file_added = $file_content['file_added'];
+          $file_no_change = $file_content['file_no_change'];
+          $file_changed = $file_content['file_changed'];
+          $file_removed = $file_content['file_removed'];
+
+
+          $searchforArr = Config::SUSPICIOUS_ARR;
+          $suspicious_file = array();
+          $current_step = 0;
+          foreach ($file_added as $added)
+          {
+            $contents = file_get_contents($added['path']);
+            foreach ($searchforArr as $searchfor)
+            {
+              $pattern = preg_quote($searchfor, '/');
+              $detected = $pattern;
+              // finalise the regular expression, matching the whole line
+              $pattern = "/^.*$pattern.*\$/m";
+              if(preg_match_all($pattern, $contents, $matches))
+              {
+                // $added['suspicious'] = implode("\n", $matches[0]);
+                $added['suspicious'] = $detected;
+                array_push($suspicious_file, $added);
+                // echo "Files: ".$added['filename']." - Found matches:\n";
+                // echo implode("\n", $matches[0]);
+              }
+            }
+
+            ob_flush();
+            flush();
+
+            // sleep(0.000166667);
+            sleep(0.000166667);
+          }
+          ////
+          //// SUSPICIOUS PROCESS STEP 2
+          ////
+          $current_step = 0;
+          foreach ($file_changed as $modified)
+          {
+            $contents = file_get_contents('../..'.$modified['path']);
+            foreach ($searchforArr as $searchfor)
+            {
+              $pattern = preg_quote($searchfor, '/');
+              $detected = $pattern;
+              // finalise the regular expression, matching the whole line
+              $pattern = "/^.*$pattern.*\$/m";
+              if(preg_match_all($pattern, $contents, $matches))
+              {
+                $modified['suspicious'] = $detected;
+                // $modified['suspicious'] = implode("\n", $matches[0]);
+                array_push($suspicious_file, $modified);
+
+               }
+            }
+
+
+            ob_flush();
+            flush();
+            sleep(0.000166667);
+            // sleep(0.000166667);
+          }
+          echo json_encode(array(
+            'error'           => false,
+            'file_added'      => $file_added,
+            'file_no_change'  => $file_no_change,
+            'file_changed'    => $file_changed,
+            'file_removed'    => $file_removed,
+            'suspicious_file' => $suspicious_file
+          ));
+        }
       }
-      echo json_encode(array(
-        'error'           => false,
-        'file_added'      => $file_added,
-        'file_no_change'  => $file_no_change,
-        'file_changed'    => $file_changed,
-        'file_removed'    => $file_removed,
-        'suspicious_file' => $suspicious_file
-      ));
+
 
     }
     public function compare_finalyze()
