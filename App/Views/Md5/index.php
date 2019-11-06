@@ -40,6 +40,39 @@
     </div>
   </div>
 </div>
+<div class="container compare_process" style="display:none;">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="ajax-res">
+        <div class="card">
+          <div class="card-header">
+            <h3>Comparing Process</h3>
+          </div>
+          <div class="card-body">
+            <p class="label_step_1">Initialization...</p>
+            <div class="step_1_progress progress">
+                <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%">0%</div>
+            </div>
+            <p class="label_step_2">Compare Process...</p>
+            <div class="step_2_progress progress">
+                <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%">0%</div>
+            </div>
+            <p class="label_step_3">Analyze Process...</p>
+            <div class="step_3_progress progress">
+                <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%">0%</div>
+            </div>
+            <p class="label_step_4">Finalization...</p>
+            <div class="step_4_progress progress">
+                <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%">0%</div>
+            </div>
+
+            <div class="label_server_response"><p></p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="container">
   <div class="row">
     <div class="col-md-6">
@@ -107,7 +140,7 @@
           <a href="/pimdna/public/md5/compare" class="btn btn-primary btn-compare" role="button">
             Compare MD5
           </a>
-          <a href="/pimdna/public/md5/compare_init" class="btn btn-primary btn-compare_v2" role="button">
+          <a href="" class="btn btn-primary btn-compare_v2" role="button">
             Compare MD5 v2
           </a>
           {% endif %}
@@ -119,7 +152,7 @@
   </div>
 </div>
 <form id="compare_result" action='/pimdna/public/md5/results' method="POST">
-  <input type="hidden" class="args_data" name="args_data">
+
 </form>
 
 

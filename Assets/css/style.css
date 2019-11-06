@@ -63,3 +63,7 @@ span.offline {
   padding:3px;
   border-radius:5px;
 }
+.ajax-res p {
+  margin-bottom:0;
+  margin-top:1rem;
+}

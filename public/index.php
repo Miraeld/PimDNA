@@ -57,6 +57,7 @@ $router->add('md5/compare_init', ['controller' => 'Md5', 'action' => 'compare_in
 $router->add('md5/compare_compare', ['controller' => 'Md5', 'action' => 'compare_compare']);
 $router->add('md5/compare_analyze', ['controller' => 'Md5', 'action' => 'compare_analyze']);
 $router->add('md5/compare_finalyze', ['controller' => 'Md5', 'action' => 'compare_finalyze']);
+$router->add('md5/test', ['controller' => 'Md5', 'action' => 'test']);
 
 
 $router->add('{controller}/{action}');
