@@ -23,6 +23,8 @@ class Md5 extends \Core\Controller
     public $listfile = '';
     public $content_folder = array();
     public $utilities;
+
+    private $current_progress = 0;
     /**
      * Show the index page
      *
@@ -436,6 +438,21 @@ class Md5 extends \Core\Controller
     }
 
     public function compare_cron()
+    {
+
+      if ((isset($_POST['token']) && $_POST['token'] == $this->utilities->getToken()))
+      {
+        ini_set("memory_limit", "-1");
+        set_time_limit(0);
+        ignore_user_abort(true);
+        $this->compare_init();
+        $this->compare_compare();
+        $this->compare_analyze();
+        $this->compare_finalyze();
+      }
+    }
+
+    public function compare_cron_old()
     {
       if ($_POST['token'] == $this->utilities->getToken())
       {
@@ -1250,6 +1267,8 @@ class Md5 extends \Core\Controller
       $dir = '../..';
       $this->listFolder($dir);
 
+
+
       $files = scandir('../dna/', SCANDIR_SORT_DESCENDING);
       $dna_reference = $files[0];
       $filename = '../dna/'.$dna_reference;
@@ -1258,8 +1277,14 @@ class Md5 extends \Core\Controller
       {
         $array_fileline = explode("\n", fread($dna_file, filesize($filename)));
       }
+      $log_process = array('total_files' => count($array_fileline));
+      file_put_contents('../tmp/compare_process.pdna', json_encode($log_process));
+      $output = array('error' => false, 'dna_array' => $array_fileline, 'content_folder' => $this->content_folder);
+      $filesave = fopen('../tmp/compare_init_result.pdna', 'w');
+      fwrite($filesave, json_encode($output));
+      fclose($filesave);
+      echo json_encode(array('error' => false, 'status' => 1));
 
-      echo json_encode(array('error' => false, 'dna_array' => $array_fileline, 'content_folder' => $this->content_folder));
     }
 
     public function compare_compare()
@@ -1271,22 +1296,40 @@ class Md5 extends \Core\Controller
       $file_no_change = array();
       $file_changed = array();
       $file_removed = array();
+      $compare_log = fopen('../tmp/compare_compare_logs.pdna', 'w');
+      $compare_test = '../tmp/compare_compare_index.pdna';
+      // $compare_test = fopen('../tmp/compare_compare_index.pdna', 'w+');
 
-      $current_entrie = 0;
-      $current_step = 0;
-      $step_max = 100;
 
-      if (isset($_POST['dna']) && isset($_POST['folder']))
+
+
+      // $current_entrie = 0;
+      // $current_step = 0;
+      // $step_max = 100;
+
+      if (file_exists('../tmp/compare_init_result.pdna'))
       {
-        $dna_array = json_decode($_POST['dna'],true);
-        $this->content_folder = json_decode($_POST['folder'], true);
+        $current_entrie = 0;
+        $current_step = 0;
+        $step_max = 100;
+
+        fwrite($compare_log, 'compare_init_result detected || ');
+        $file_content = file_get_contents('../tmp/compare_init_result.pdna');
+        $file_content = json_decode($file_content,true);
+
+        $dna_array = $file_content['dna_array'];
+        $this->content_folder = $file_content['content_folder'];
+
         $total_entries = count($dna_array);
         echo json_encode(array('status' => 0, 'progress' => 0, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Comparing...')).'--';
         flush();
         ob_flush();
         sleep(1);
+        fwrite($compare_log, 'Foreach() beginning || ');
         foreach ($dna_array as $index => $value)
         {
+          // fwrite($compare_test, $index);
+
           $val = explode(' || ', $value);
           if (!empty($val[0]))
           {
@@ -1311,40 +1354,39 @@ class Md5 extends \Core\Controller
               unset($this->content_folder[$existing_index]);
             }
 
-
-
-
           }
           $current_entrie++;
+          $this->current_progress = $current_entrie;
+          file_put_contents($compare_test, $this->current_progress);
 
-          if ($current_step == round($total_entries/$step_max))
-          {
-            $dd = json_encode(array('status' => 0,
-
-              'progress' => number_format((($current_entrie/$total_entries)*100),2),
-              'count' => $current_entrie,
-              'total' => $total_entries,
-
-
-
-              'type' => 'Comparing...'));
-            echo  $dd.'--';
-            $current_step++;
-          }
-          else if ($current_step < round($total_entries/$step_max))
-          {
-            $current_step++;
-          }
-          else
-          {
-            $current_step = 0;
-          }
+          // if ($current_step == round($total_entries/$step_max))
+          // {
+          //   $dd = json_encode(array('status' => 0,
+          //
+          //     'progress' => number_format((($current_entrie/$total_entries)*100),2),
+          //     'count' => $current_entrie,
+          //     'total' => $total_entries,
+          //     'type' => 'Comparing...'));
+          //   echo  $dd.'--';
+          //   $current_step++;
+          // }
+          // else if ($current_step < round($total_entries/$step_max))
+          // {
+          //   $current_step++;
+          // }
+          // else
+          // {
+          //   $current_step = 0;
+          // }
 
           ob_flush();
           flush();
           // sleep(1);
           sleep(0.000166667);
+
         }
+        unset($dna_array);
+        fwrite($compare_log, 'End Foreach || ');
         $dd = json_encode(array('status' => 0, 'progress' => 100, 'count' => $total_entries, 'total' => $total_entries, 'type' => 'Comparison done.'));
         echo  $dd.'--';
 
@@ -1370,9 +1412,40 @@ class Md5 extends \Core\Controller
         fwrite($filesave, json_encode($output));
         fclose($filesave);
 
+        fwrite($compare_log, 'compare_compare Complete || ');
+        fclose($compare_log);
+        // fclose($compare_test);
+
       } else {
         echo json_encode(array('status' => 0, 'error'=> true, 'msg' => "Pas de POST value"));
       }
+    }
+
+    public function getCurrentProgress()
+    {
+      if (file_exists('../tmp/compare_compare_index.pdna'))
+      {
+        $progress = file_get_contents('../tmp/compare_compare_index.pdna');
+        echo $progress;
+        return $progress;
+      } else {
+        return false;
+      }
+    }
+
+    public function getInitFile()
+    {
+      if (file_exists('../tmp/compare_process.pdna'))
+      {
+        $output = json_decode(file_get_contents('../tmp/compare_process.pdna'));
+        echo $output->total_files;
+        return $output->total_files;
+      }
+      else
+      {
+        return false;
+      }
+
     }
 
     public function compare_analyze()
@@ -1851,32 +1924,14 @@ class Md5 extends \Core\Controller
     }
 
     public function test() {
-      // var_export(ob_get_level());
-      // if (ob_get_level()) ob_end_clean();
-      // if (ob_get_level() == 0) ob_start();
-      // for ($i = 0; $i<5; $i++){
-      //
-      //     echo "<br> Line to show.";
-      //     echo str_pad('',4096)."\n";
-      //
-      //     ob_flush();
-      //     flush();
-      //     sleep(1);
-      // }
-      //
-      // echo "Done.";
-      //
-      // ob_end_flush();
+      ob_implicit_flush(1);
 
-      ob_implicit_flush(true);
-      // ob_implicit_flush(true);
-      // ob_end_flush();
-      $text = '';
-      for ($i=0; $i<5; $i++) {
-          $text = $i."<br>\n";
-          echo $text;
-          ob_flush();
-          flush();
+      for($i=0; $i<10; $i++){
+          echo $i;
+
+          //this is for the buffer achieve the minimum size in order to flush data
+          echo str_repeat(' ',1024*64);
+
           sleep(1);
       }
     }

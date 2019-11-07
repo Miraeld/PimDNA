@@ -130,6 +130,7 @@ $(document).ready(function () {
   //////////////////////////////////
   //////////////////////////////////
   var counter = 0;
+  var total_files = 0;
   $('.btn-compare_v2').on('click', function (e) {
     e.preventDefault();
     // $('.compare_process .card-header h3').text('Comparing Process');
@@ -139,6 +140,20 @@ $(document).ready(function () {
       var interval = setInterval(function() {
           counter++;
           $('.label_server_response p').text('Last server response : '+counter+'s');
+          $.ajax({
+            url: '/pimdna/public/md5/progress',
+            success: function (response)
+            {
+              if (response != '')
+              {
+                let percent = (response/total_files) * 100;
+                $('.ajax-res .label_step_2').text('Processed '+response+' of '+total_files+' - Step: Comparing' );
+                $(".compare_process .step_2_progress .progress-bar").css('width', percent.toFixed(2)+'%').text(percent.toFixed(2)+'%');
+                counter = 0;
+              }
+              console.log(response);
+            }
+          });
 
           if (counter == 100000) {
               // Display a login box
@@ -156,8 +171,8 @@ $(document).ready(function () {
         $(".compare_process .step_1_progress .progress-bar").css('width', '100%').text('100%');
     		jsonResponse = JSON.parse(response);
 
-    		data_dna = JSON.stringify(jsonResponse['dna_array']);
-    		data_folder = JSON.stringify(jsonResponse['content_folder']);
+    		// data_dna = JSON.stringify(jsonResponse['dna_array']);
+    		// data_folder = JSON.stringify(jsonResponse['content_folder']);
         $('.ajax-res .label_step_1').text('Initialization - Done.');
         $(".step_1_progress .progress-bar").css({
             width:'100%',
@@ -165,11 +180,25 @@ $(document).ready(function () {
         });
         counter = 0;
 
-    		$.ajax({
+        console.log(jsonResponse);
+        if (!jsonResponse['error'] && jsonResponse['status'])
+        {
+          $.ajax({
+            url: '/pimdna/public/md5/getInit',
+            success: function (response)
+            {
+              if (response != '')
+              {
+                total_files = response;
+              }
+              console.log(response);
+            }
+          });
+
+          console.log('compare_init status == 1');
+    		  $.ajax({
     			url: '/pimdna/public/md5/compare_compare',
           timeout:0,
-    			method: 'POST',
-    			data : { dna: data_dna, folder:data_folder },
           xhrFields:
           {
             onprogress: function(e)
@@ -186,7 +215,7 @@ $(document).ready(function () {
               var strLines = thisResponse.split("--");
               strLines.pop();
 
-              console.log(strLines);
+              // console.log(strLines);
               for (var i in strLines) {
                 try {
 
@@ -195,12 +224,12 @@ $(document).ready(function () {
                   if (jsonResponse.status == 0)
                   {
                     counter = 0;
-                    $('.ajax-res .label_step_2').text('Processed '+jsonResponse.count+' of '+jsonResponse.total + ' - Step: ' + jsonResponse.type);
-                    $(".compare_process .step_2_progress .progress-bar").css('width', jsonResponse.progress+'%').text(jsonResponse.progress+'%');
+                    // $('.ajax-res .label_step_2').text('Processed '+jsonResponse.count+' of '+jsonResponse.total + ' - Step: ' + jsonResponse.type);
+                    // $(".compare_process .step_2_progress .progress-bar").css('width', jsonResponse.progress+'%').text(jsonResponse.progress+'%');
                   }
                   else if (jsonResponse.status == 1)
-                  // else
                   {
+                    console.log('compare_compare status == 1');
                     counter = 0;
                     // console.log('status == 1');
                     // jsonResponse = JSON.parse(response);
@@ -211,7 +240,7 @@ $(document).ready(function () {
                           backgroundColor: 'green'
                       });
 
-                        $.ajax({
+                      $.ajax({
                           url: '/pimdna/public/md5/compare_analyze',
                           method: 'POST',
                           timeout:0,
@@ -231,7 +260,7 @@ $(document).ready(function () {
                               var strLines = thisResponse.split("--");
                               strLines.pop();
 
-                              console.log(strLines);
+                              // console.log(strLines);
                               for (var i in strLines) {
                                 try
                                 {
@@ -245,6 +274,7 @@ $(document).ready(function () {
                                   }
                                   else if (jsonResponse.status == 1)
                                   {
+                                    console.log('compare_analyze status == 1');
                                     if (jsonResponse.error == false)
                                     {
                                       counter = 0;
@@ -277,13 +307,13 @@ $(document).ready(function () {
                                             var strLines = thisResponse.split("--");
                                             strLines.pop();
 
-                                            console.log(strLines);
+                                            // console.log(strLines);
                                             for (var i in strLines) {
                                               try
                                               {
                                                 var jsonResponse = JSON.parse(strLines[i]);
-                                                console.log('jsonResponse');
-                                                console.log(jsonResponse);
+                                                // console.log('jsonResponse');
+                                                // console.log(jsonResponse);
                                                 if (jsonResponse.status == 0)
                                                 {
                                                   counter = 0;
@@ -292,24 +322,31 @@ $(document).ready(function () {
                                                 }
                                                 else if (jsonResponse.status == 1)
                                                 {
+                                                  console.log('compare_finalyze status == 1');
                                                   $('.ajax-res .label_step_4').text('Preparing Results - Done.');
                                                   $(".step_4_progress .progress-bar").css({
                                                       width:'100%',
                                                       backgroundColor: 'green'
                                                   });
                                                   if (!jsonResponse.error)
-                                                    {
-                                                      counter = 0;
-                                                      // $('.args_data').val(JSON.stringify(jsonResponse.datas));
-                                                      $(".compare_process .step_4_progress .progress-bar").css('width', '100%').text('100%');
-                                                      $(".step_4_progress .progress-bar").css({
-                                                          width:'100%',
-                                                          backgroundColor: 'green'
-                                                      });
-                                                      clearInterval(interval);
-                                                      // $('#compare_result').submit();
+                                                  {
+                                                    console.log('compare_finalyze jsonResponse.error == false');
 
-                                                    }
+                                                    counter = 0;
+                                                    // $('.args_data').val(JSON.stringify(jsonResponse.datas));
+                                                    $(".compare_process .step_4_progress .progress-bar").css('width', '100%').text('100%');
+                                                    $(".step_4_progress .progress-bar").css({
+                                                        width:'100%',
+                                                        backgroundColor: 'green'
+                                                    });
+                                                    clearInterval(interval);
+
+                                                    // $('#compare_result').submit();
+
+                                                  }
+                                                }
+                                                else {
+                                                  console.log('compare_finalyze else');
                                                 }
 
                                                 // .compare_process .step_4_progress
@@ -340,6 +377,9 @@ $(document).ready(function () {
                                       alert('Error while analyzing');
                                     }
                                   }
+                                  else {
+                                    console.log('compare_analyze else');
+                                  }
                                 }
                                 catch (err)
                                 {
@@ -355,6 +395,9 @@ $(document).ready(function () {
 
                     console.log(jsonResponse);
                   }
+                  else {
+                    console.log('compare_compare else');
+                  }
 
                 } catch (err)
                 {
@@ -362,8 +405,16 @@ $(document).ready(function () {
                 }
               }
             }
+          },
+          error: function (error) {
+            console.log('Error : ');
+            console.log(error);
+            if (error.status == 503) {
+              console.log('Error 503');
+            }
           }
         });
+        }
       }
     });
   })
