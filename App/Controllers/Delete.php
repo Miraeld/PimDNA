@@ -38,8 +38,6 @@ class Delete extends \Core\Controller
     public function index()
     {
 
-      $this->checkConnexion();
-
       $this->list_all_dir('../..');
       $args = array(
         'list_all_dir' => $this->list_all_folders,
