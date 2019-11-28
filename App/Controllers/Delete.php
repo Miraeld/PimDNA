@@ -68,7 +68,8 @@ class Delete extends \Core\Controller
     }
     public function del()
     {
-        $this->deleteDirectory($_POST['path']);
+        $this->delete_files('../../Helloworld');
+        // $this->delete_files($_POST['path']);
 
     }
 
@@ -89,6 +90,30 @@ class Delete extends \Core\Controller
         reset($objects);
         rmdir($dirPath);
         }
+    }
+
+    private function delete_files($target) {
+
+
+      if (PHP_OS == 'Linux') {
+            exec('chmod -R 777 '.$target);
+            exec('rm -rf '.$target);
+      } else {
+        if(is_dir($target)){
+            $files = glob( $target . '*', GLOB_MARK ); //GLOB_MARK adds a slash to directories returned
+
+            foreach( $files as $file ){
+                $this->delete_files( $file );
+            }
+
+            rmdir( $target );
+        } elseif(is_file($target)) {
+              chmod($target, 777);
+              unlink( $target );
+
+        }
+      }
+
     }
 
     public function checkConnexion()
