@@ -47,6 +47,8 @@ class Md5 extends \Core\Controller
       $dir = $_SERVER['DOCUMENT_ROOT'].'/';
       $file_exist = $this->exist_dna('../dna/');
 
+
+      $result_exist = file_exists('../tmp/compare_finalyze_result.pdna');
       $list_pdna = scandir('../dna/');
       unset($list_pdna[array_search('.', $list_pdna, true)]);
       unset($list_pdna[array_search('..', $list_pdna, true)]);
@@ -67,6 +69,7 @@ class Md5 extends \Core\Controller
         'file_exist'    => $file_exist,
         'document_root' => $dir,
         'list_pdna'     => $f_list_pdna,
+        'result_exist'  => $result_exist
 
 
       );
@@ -187,14 +190,16 @@ class Md5 extends \Core\Controller
       {
         $file_content = file_get_contents('../tmp/compare_finalyze_result.pdna');
         $args = json_decode($file_content,true);
-        // $files = glob('../tmp/*'); // get all file names
-        // foreach($files as $file){ // iterate files
-        //   if(is_file($file))
-        //     unlink($file); // delete file
-        // }
+        $files = glob('../tmp/*'); // get all file names
+        foreach($files as $file){ // iterate files
+          if(is_file($file))
+          if (strpos($file, 'compare_finalyze_result') === false) {
+              unlink($file);
+          }
+
+        }
         View::renderTemplate('Md5/result.php', $args);
       }
-      // $args = json_decode($_POST['args_data'],true);
 
     }
 
@@ -230,7 +235,7 @@ class Md5 extends \Core\Controller
         }
 
         $total_entries = count($array_fileline);
-        echo json_encode(array('status' => 0, 'progress' => 0, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Init...')).'--';
+        // echo json_encode(array('status' => 0, 'progress' => 0, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Init...')).'--';
         flush();
         ob_flush();
         sleep(1);
@@ -327,8 +332,8 @@ class Md5 extends \Core\Controller
           // }
           $current_entrie++;
           if ($current_step == round($total_entries/$step_max)) {
-            $dd = json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100),2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Analyzing Added Files...'));
-            echo $dd .'--';
+            // $dd = json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100),2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Analyzing Added Files...'));
+            // echo $dd .'--';
             $current_step++;
           } else if ($current_step < round($total_entries/$step_max)) {
             $current_step++;
@@ -363,8 +368,8 @@ class Md5 extends \Core\Controller
           // }
           $current_entrie++;
           if ($current_step == round($total_entries/$step_max)) {
-              $dd = json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100), 2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Analyzing Modified Files...'));
-              echo $dd .'--';
+              // $dd = json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100), 2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Analyzing Modified Files...'));
+              // echo $dd .'--';
               $current_step++;
           }
           else if ($current_step < round($total_entries/$step_max))
@@ -381,7 +386,7 @@ class Md5 extends \Core\Controller
           sleep(0.000166667);
           // sleep(0.000166667);
         }
-        echo json_encode(array('status' => 0, 'progress' => 100, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Preparing results...')).'--';
+        // echo json_encode(array('status' => 0, 'progress' => 100, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Preparing results...')).'--';
         ob_flush();
         flush();
 
@@ -1321,7 +1326,7 @@ class Md5 extends \Core\Controller
         $this->content_folder = $file_content['content_folder'];
 
         $total_entries = count($dna_array);
-        echo json_encode(array('status' => 0, 'progress' => 0, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Comparing...')).'--';
+        // echo json_encode(array('status' => 0, 'progress' => 0, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Comparing...')).'--';
         flush();
         ob_flush();
         sleep(1);
@@ -1387,8 +1392,8 @@ class Md5 extends \Core\Controller
         }
         unset($dna_array);
         fwrite($compare_log, 'End Foreach || ');
-        $dd = json_encode(array('status' => 0, 'progress' => 100, 'count' => $total_entries, 'total' => $total_entries, 'type' => 'Comparison done.'));
-        echo  $dd.'--';
+        // $dd = json_encode(array('status' => 0, 'progress' => 100, 'count' => $total_entries, 'total' => $total_entries, 'type' => 'Comparison done.'));
+        // echo  $dd.'--';
 
         $file_added = $this->content_folder;
         ob_flush();
@@ -1403,8 +1408,8 @@ class Md5 extends \Core\Controller
         );
 
         // echo json_encode($output).'--';
-        $dd = json_encode(array('status' => 1, 'error'=> false));
-        echo $dd.'--';
+        // $dd = json_encode(array('status' => 1, 'error'=> false));
+        // echo $dd.'--';
         ob_flush();
         flush();
 
@@ -1417,20 +1422,57 @@ class Md5 extends \Core\Controller
         // fclose($compare_test);
 
       } else {
-        echo json_encode(array('status' => 0, 'error'=> true, 'msg' => "Pas de POST value"));
+        // echo json_encode(array('status' => 0, 'error'=> true, 'msg' => "Pas de POST value"));
       }
     }
 
     public function getCurrentProgress()
     {
-      if (file_exists('../tmp/compare_compare_index.pdna'))
+      // var_export($_POST);
+      if (isset($_POST['action']))
       {
-        $progress = file_get_contents('../tmp/compare_compare_index.pdna');
-        echo $progress;
-        return $progress;
-      } else {
-        return false;
+        switch ($_POST['action'])
+        {
+          case  'compare_init' :
+          break;
+          case 'compare_compare' :
+            if (file_exists('../tmp/compare_compare_index.pdna'))
+            {
+              $progress = file_get_contents('../tmp/compare_compare_index.pdna');
+              echo $progress;
+              return $progress;
+            } else {
+              return false;
+            }
+          case 'compare_analyze':
+            if (file_exists('../tmp/analyze_process.pdna'))
+            {
+              echo file_get_contents('../tmp/analyze_process.pdna');
+              return file_get_contents('../tmp/analyze_process.pdna');
+            } else {
+              return false;
+            }
+          break;
+          case 'compare_finalyze':
+            if (file_exists('../tmp/finalyze_process.pdna'))
+            {
+              echo file_get_contents('../tmp/finalyze_process.pdna');
+              return file_get_contents('../tmp/finalyze_process.pdna');
+            } else {
+              return false;
+            }
+          break;
+        }
       }
+      // exit();
+      // if (file_exists('../tmp/compare_compare_index.pdna'))
+      // {
+      //   $progress = file_get_contents('../tmp/compare_compare_index.pdna');
+      //   echo $progress;
+      //   return $progress;
+      // } else {
+      //   return false;
+      // }
     }
 
     public function getInitFile()
@@ -1492,8 +1534,16 @@ class Md5 extends \Core\Controller
           }
           if ($current_step == round($total_entries/$step_max))
           {
-            $dd = json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100),2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Step 1 - Analyzing...'));
-            echo  $dd.'--';
+            // $dd = json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100),2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Step 1 - Analyzing...'));
+            // echo  $dd.'--';
+
+            $log_process = array(
+              'total_files'     => $total_entries,
+              'current_entrie'  => $current_step,
+              'step'            => 1
+            );
+            file_put_contents('../tmp/analyze_process.pdna', json_encode($log_process));
+
             $current_step++;
           }
           else if ($current_step < round($total_entries/$step_max))
@@ -1511,8 +1561,8 @@ class Md5 extends \Core\Controller
           // sleep(0.000166667);
           sleep(0.000166667);
         }
-        $dd = json_encode(array('status' => 0, 'progress' => 0, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Preparing Step 2 Analyzing ...'));
-        echo  $dd.'--';
+        // $dd = json_encode(array('status' => 0, 'progress' => 0, 'count' => $current_entrie, 'total' => $total_entries, 'type' => 'Preparing Step 2 Analyzing ...'));
+        // echo  $dd.'--';
         ob_flush();
         flush();
 
@@ -1542,8 +1592,14 @@ class Md5 extends \Core\Controller
           }
           if ($current_step == round($total_entries/$step_max))
           {
-            $dd = json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100),2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => ' 2 - Analyzing...'));
-            echo  $dd.'--';
+            // $dd = json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100),2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => ' 2 - Analyzing...'));
+            // echo  $dd.'--';
+            $log_process = array(
+              'total_files'     => ($total_entries),
+              'current_entrie'  => $current_step,
+              'step'            => 2
+            );
+            file_put_contents('../tmp/analyze_process.pdna', json_encode($log_process));
             $current_step++;
           }
           else if ($current_step < round($total_entries/$step_max))
@@ -1560,8 +1616,8 @@ class Md5 extends \Core\Controller
           sleep(0.000166667);
           // sleep(0.000166667);
         }
-        $dd = json_encode(array('status' => 0, 'progress' => 100, 'count' => $total_entries, 'total' => $total_entries, 'type' => 'Analyzing Done'));
-        echo  $dd.'--';
+        // $dd = json_encode(array('status' => 0, 'progress' => 100, 'count' => $total_entries, 'total' => $total_entries, 'type' => 'Analyzing Done'));
+        // echo  $dd.'--';
         ob_flush();
         flush();
         sleep(2);
@@ -1829,11 +1885,18 @@ class Md5 extends \Core\Controller
         $current_step = 0;
         $step_max = 100;
 
+        $log_process = array(
+          'total_step'  => 5,
+          'step'        => 1,
+          'progress'    => 0,
+          'text'        => 'Preparing Results...'
+        );
+        file_put_contents('../tmp/finalyze_process.pdna', json_encode($log_process));
 
 
         $file_content = file_get_contents('../tmp/compare_analyze_result.pdna');
         $file_content = json_decode($file_content,true);
-        echo json_encode(array('status' => 0, 'progress' => 0, 'count' => 0, 'total' => 5, 'type' => 'Preparing results...')).'--';
+        // echo json_encode(array('status' => 0, 'progress' => 0, 'count' => 0, 'total' => 5, 'type' => 'Preparing results...')).'--';
 
         ob_flush();
         flush();
@@ -1859,7 +1922,15 @@ class Md5 extends \Core\Controller
 
           if (Config::SEND_MAIL)
           {
-            echo json_encode(array('status' => 0, 'progress' => 25, 'count' => 1, 'total' => 5, 'type' => 'Sending Email...')).'--';
+            $log_process = array(
+              'total_step'  => 5,
+              'step'        => 2,
+              'progress'    => 25,
+              'text'        => 'Sending E-mail(s)...'
+            );
+            file_put_contents('../tmp/finalyze_process.pdna', json_encode($log_process));
+
+            // echo json_encode(array('status' => 0, 'progress' => 25, 'count' => 1, 'total' => 5, 'type' => 'Sending Email...')).'--';
             sleep(3);
             ob_flush();
             flush();
@@ -1869,7 +1940,15 @@ class Md5 extends \Core\Controller
           }
           if (Config::HANGOUT_MSG)
           {
-            echo json_encode(array('status' => 0, 'progress' => 50, 'count' => 2, 'total' => 5, 'type' => 'Send Hangout Message...')).'--';
+            $log_process = array(
+              'total_step'  => 5,
+              'step'        => 3,
+              'progress'    => 50,
+              'text'        => 'Sending Hangout Message...'
+            );
+            file_put_contents('../tmp/finalyze_process.pdna', json_encode($log_process));
+
+            // echo json_encode(array('status' => 0, 'progress' => 50, 'count' => 2, 'total' => 5, 'type' => 'Send Hangout Message...')).'--';
             sleep(3);
             ob_flush();
             flush();
@@ -1890,7 +1969,15 @@ class Md5 extends \Core\Controller
 
             $this->utilities->send_hg_msg(1, $hangout_msg);
           }
-          echo json_encode(array('status' => 0, 'progress' => 100, 'count' => 5, 'total' => 5, 'type' => 'Preparing results...')).'--';
+          $log_process = array(
+            'total_step'  => 5,
+            'step'        => 4,
+            'progress'    => 75,
+            'text'        => 'Preparing Results...'
+          );
+          file_put_contents('../tmp/finalyze_process.pdna', json_encode($log_process));
+
+          // echo json_encode(array('status' => 0, 'progress' => 100, 'count' => 5, 'total' => 5, 'type' => 'Preparing results...')).'--';
           sleep(3);
           ob_flush();
           flush();
@@ -1909,15 +1996,26 @@ class Md5 extends \Core\Controller
             'files_suspicious'      => $suspicious_file,
           );
           // echo json_encode(array('status' => 1, 'datas' => $args)).'--';
-          echo json_encode(array('status' => 1, 'error' => false)).'--';
+          // echo json_encode(array('status' => 1, 'error' => false)).'--';
           $filesave = fopen('../tmp/compare_finalyze_result.pdna', 'w');
+
 
           fwrite($filesave, json_encode($args));
           fclose($filesave);
-          echo json_encode(array(
-            'error'           => false,
-            'status'          => 1,
-          )).'--';
+
+          $log_process = array(
+            'total_step'  => 5,
+            'step'        => 5,
+            'progress'    => 100,
+            'text'        => 'Redirection...'
+          );
+          file_put_contents('../tmp/finalyze_process.pdna', json_encode($log_process));
+
+
+          // echo json_encode(array(
+          //   'error'           => false,
+          //   'status'          => 1,
+          // )).'--';
           ob_flush();
           flush();
         }
@@ -1935,4 +2033,8 @@ class Md5 extends \Core\Controller
           sleep(1);
       }
     }
+
+
+
+
 }

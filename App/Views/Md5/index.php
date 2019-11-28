@@ -137,11 +137,13 @@
             Generate MD5
           </a>
           {% if (file_exist) %}
-          <a href="/pimdna/public/md5/compare" class="btn btn-primary btn-compare" role="button">
+          <a href="" class="btn btn-primary btn-compare_v3" role="button">
             Compare MD5
           </a>
-          <a href="" class="btn btn-primary btn-compare_v2" role="button">
-            Compare MD5 v2
+          {% endif %}
+          {% if (result_exist) %}
+          <a href="/pimdna/public/md5/results" class="btn btn-success" role="button">
+            Previous Results
           </a>
           {% endif %}
 
