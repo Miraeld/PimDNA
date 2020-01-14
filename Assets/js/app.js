@@ -5,59 +5,137 @@ $(document).ready(function () {
     window.open($('#pdna_select').val(), '_blank');
   });
 
-  $('.btn-generate').on('click', function (e) {
+  // $('.btn-generate').on('click', function (e) {
+  //   e.preventDefault();
+  //   $('.generation_process .card-header h3').text('Generation of .pdna file');
+  //   $('.btn-generate').html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating...');
+  //   $('.generation_process').slideDown();
+  //   var jsonResponse = '', lastResponseLen = false;
+  //
+  //       $('.ajax-res').slideDown();
+  //       $.ajax({
+  //           url: '/pimdna/public/md5/generate',
+  //           timeout:0,
+  //           xhrFields: {
+  //               onprogress: function(e) {
+  //                   var thisResponse, response = e.currentTarget.response;
+  //                   if(lastResponseLen === false) {
+  //                       thisResponse = response;
+  //                       lastResponseLen = response.length;
+  //                   } else {
+  //                       thisResponse = response.substring(lastResponseLen);
+  //                       lastResponseLen = response.length;
+  //                   }
+  //
+  //                   console.log(thisResponse);
+  //                   var strLines = thisResponse.split("--");
+  //                   strLines.pop();
+  //                   console.log(strLines);
+  //                   for (var i in strLines) {
+  //                     try {
+  //                       var jsonResponse = JSON.parse(strLines[i]);
+  //                       $('.ajax-res p').text('Processed '+jsonResponse.count+' of '+jsonResponse.total);
+  //                       $(".progress-bar").css('width', jsonResponse.progress+'%').text(jsonResponse.progress+'%');
+  //                     }
+  //                     catch (err) {
+  //
+  //                     }
+  //
+  //                   }
+  //
+  //
+  //               }
+  //           },
+  //           success: function(text) {
+  //
+  //               $('.ajax-res p').text('Process completed successfully');
+  //               $(".progress-bar").css({
+  //                   width:'100%',
+  //                   backgroundColor: 'green'
+  //               });
+  //               window.location.href="/pimdna/public/md5/generated";
+  //           }
+  //       });
+  //
+  // });
+
+
+  ///////////////////////////////////
+  ///////////////////////////////////
+  /////////// GENERATE V2 ///////////
+  ///////////////////////////////////
+  ///////////////////////////////////
+
+
+  $('.btn-generate-2').on('click', function (e) {
     e.preventDefault();
-    $('.generation_process .card-header h3').text('Generation of .pdna file');
-    $('.btn-generate').html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating...');
-    $('.generation_process').slideDown();
-    var jsonResponse = '', lastResponseLen = false;
 
-        $('.ajax-res').slideDown();
+
+    counter = 0;
+    var interval = setInterval(function() {
+        $('.label_server_response p').text('Last server response : '+counter+'s');
+        counter++;
+        // console.log('CURRENT STEP NAME = '+ current_step_name);
         $.ajax({
-            url: '/pimdna/public/md5/generate',
-            timeout:0,
-            xhrFields: {
-                onprogress: function(e) {
-                    var thisResponse, response = e.currentTarget.response;
-                    if(lastResponseLen === false) {
-                        thisResponse = response;
-                        lastResponseLen = response.length;
-                    } else {
-                        thisResponse = response.substring(lastResponseLen);
-                        lastResponseLen = response.length;
-                    }
+          url: '/pimdna/public/md5/gen_progress',
+          beforeSend: function () {
+            // console.log('/pimdna/public/md5/progress');
+          },
+          success: function (response)
+          {
+            response = JSON.parse(response);
+            if (response != '')
+            {
+              percent = (response.current_entrie/response.total_files) * 100;
+              $('.generation_process .ajax-res p.progress-txt').text('Processed '+response.current_entrie+' of '+response.total_files);
+              $(".generation_process .progress-bar").css('width', percent.toFixed(2)+'%').text(percent.toFixed(2)+'%');
+              $('.label_current_file').text('Current file : '+ response.current_file);
+              counter = 0;
 
-                    console.log(thisResponse);
-                    var strLines = thisResponse.split("--");
-                    strLines.pop();
-                    console.log(strLines);
-                    for (var i in strLines) {
-                      try {
-                        var jsonResponse = JSON.parse(strLines[i]);
-                        $('.ajax-res p').text('Processed '+jsonResponse.count+' of '+jsonResponse.total);
-                        $(".progress-bar").css('width', jsonResponse.progress+'%').text(jsonResponse.progress+'%');
-                      }
-                      catch (err) {
-
-                      }
-
-                    }
-
-
-                }
-            },
-            success: function(text) {
-
-                $('.ajax-res p').text('Process completed successfully');
-                $(".progress-bar").css({
-                    width:'100%',
-                    backgroundColor: 'green'
-                });
-                window.location.href="/pimdna/public/md5/generated";
             }
+            // console.log(response);
+            // console.log(current_step_name);
+          }
         });
 
+        if (counter == 5000) {
+
+            clearInterval(interval);
+        }
+    }, 1000);
+
+
+        $.ajax({
+          url: '/pimdna/public/md5/generate',
+          beforeSend: function () {
+            $('.generation_process .card-header h3').text('Generation of .pdna file');
+            $('.btn-generate').html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating...');
+            $('.generation_process').slideDown();
+          },
+
+          success: function () {
+            clearInterval(interval);
+            $('.generation_process .ajax-res p.progress-txt').text('Generation - Complete.');
+            $(".generation_process .progress-bar").css({
+                width:'100%',
+                backgroundColor: 'green'
+            }).text('100%');
+
+            $('.label_server_response').fadeOut();
+            $('.label_current_file').fadeOut();
+          }
+        })
+
   });
+
+
+  ///////////////////////////////////
+  ///////////////////////////////////
+  /////////// GENERATE V2 ///////////
+  ///////////////////////////////////
+  ///////////////////////////////////
+
+
 
 
   //////////////////////////////////
@@ -251,22 +329,6 @@ $('.btn-compare_v3').on('click', function (e) {
   /////////// COMPARE V3 ///////////
   //////////////////////////////////
   //////////////////////////////////
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

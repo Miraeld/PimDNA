@@ -30,10 +30,12 @@
             <h3>Generation of .pdna file</h3>
           </div>
           <div class="card-body">
-            <p>Processing...</p>
+            <p class="progress-txt">Processing...</p>
             <div class="progress">
                 <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%">0%</div>
             </div>
+            <div class="label_server_response"><p></p></div>
+            <div class="label_current_file"><p></p></div>
           </div>
         </div>
       </div>
@@ -67,6 +69,7 @@
             </div>
 
             <div class="label_server_response"><p></p></div>
+
           </div>
         </div>
       </div>
@@ -133,7 +136,10 @@
           Controls
         </div>
         <div class="card-body" style="text-align:center">
-          <a href="/pimdna/public/md5/generate" class="btn btn-success btn-generate" role="button">
+          <!-- <a href="/pimdna/public/md5/generate" class="btn btn-success btn-generate" role="button">
+            Generate MD5
+          </a> -->
+          <a href="/pimdna/public/md5/generate" class="btn btn-success btn-generate-2" role="button">
             Generate MD5
           </a>
           {% if (file_exist) %}

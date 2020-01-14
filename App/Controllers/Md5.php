@@ -130,7 +130,7 @@ class Md5 extends \Core\Controller
           $total_entries = count($this->content_folder);
           $current_entrie = 0;
 
-          echo json_encode(array('progress' => 0, 'count' => $current_entrie, 'total' => $total_entries)).'--';
+          // echo json_encode(array('progress' => 0, 'count' => $current_entrie, 'total' => $total_entries)).'--';
           flush();
           ob_flush();
 
@@ -141,6 +141,7 @@ class Md5 extends \Core\Controller
           foreach ($this->content_folder as $index => $info)
           {
             $current_entrie++;
+
             if (filesize($info['path']) < 2147483648)
             {
               $string =  str_replace('../..','', $info['path'])." || ".md5_file($info['path'])."\n";
@@ -151,7 +152,13 @@ class Md5 extends \Core\Controller
             $this->content_folder[$index] = null;
             unset($this->content_folder[$index]);
             if ($step_current == round($total_entries/$step_max)) {
-                echo json_encode(array('progress' => number_format((($current_entrie/$total_entries)*100), 2), 'count' => $current_entrie, 'total' => $total_entries)).'--';
+                // echo json_encode(array('progress' => number_format((($current_entrie/$total_entries)*100), 2), 'count' => $current_entrie, 'total' => $total_entries)).'--';
+                $log_process = array(
+                  'total_files'     => $total_entries,
+                  'current_entrie'  => $current_entrie,
+                  'current_file'    => $info['path']
+                );
+                file_put_contents('../tmp/generate_process.pdna', json_encode($log_process));
                 $step_current++;
             } else if ($step_current < round($total_entries/$step_max)) {
               $step_current++;
@@ -167,7 +174,7 @@ class Md5 extends \Core\Controller
           }
 
           fclose($filesave);
-          echo json_encode(array('progress' => 100, 'count' => $current_entrie, 'total' => $total_entries)).'--';
+          // echo json_encode(array('progress' => 100, 'count' => $current_entrie, 'total' => $total_entries)).'--';
           sleep(1);
           ob_flush();
           flush();
@@ -177,6 +184,9 @@ class Md5 extends \Core\Controller
             $hangout_msg .= "Generation made for ".$_SERVER['SERVER_NAME']." the *".date('d-m-Y')."* at *".date('H:i:s')."*.";
             $this->utilities->send_hg_msg(0, $hangout_msg);
           }
+        }
+        if (file_exists('../tmp/generate_process.pdna')) {
+          unlink('../tmp/generate_process.pdna');
         }
       // }
     }
@@ -430,7 +440,7 @@ class Md5 extends \Core\Controller
         );
 
 
-        echo json_encode(array('status' => 1, 'datas' => $args)) .'--';
+        // echo json_encode(array('status' => 1, 'datas' => $args)) .'--';
         ob_flush();
         flush();
 
@@ -1280,9 +1290,17 @@ class Md5 extends \Core\Controller
       $dna_file = fopen($filename, 'r');
       if ($dna_file)
       {
-        $array_fileline = explode("\n", fread($dna_file, filesize($filename)));
+        $array_fileline = explode("\n", utf8_encode(fread($dna_file, filesize($filename))));
       }
       $log_process = array('total_files' => count($array_fileline));
+
+      // var_export(json_encode($array_fileline));
+      // echo "<hr>";
+      // var_export(json_last_error());
+      // echo "<hr>";
+      // exit();
+      $this->content_folder = array_map(array($this, 'encode_all_strings'), $this->content_folder);
+
       file_put_contents('../tmp/compare_process.pdna', json_encode($log_process));
       $output = array('error' => false, 'dna_array' => $array_fileline, 'content_folder' => $this->content_folder);
       $filesave = fopen('../tmp/compare_init_result.pdna', 'w');
@@ -1290,6 +1308,15 @@ class Md5 extends \Core\Controller
       fclose($filesave);
       echo json_encode(array('error' => false, 'status' => 1));
 
+    }
+
+
+
+    private function encode_all_strings($arr) {
+        foreach($arr as $key => $value) {
+            $arr[$key] = utf8_encode($value);
+        }
+        return $arr;
     }
 
     public function compare_compare()
@@ -1342,14 +1369,21 @@ class Md5 extends \Core\Controller
 
             if ($existing_index)
             {
-              if (md5_file($this->content_folder[$existing_index]['path']) == $val[1])
-              {
-                // echo "MD5 SIMILAR<br>";
-                array_push($file_no_change, array('path' => $val[0]));
+              if (file_exists($this->content_folder[$existing_index]['path'])) {
+
+
+                if (md5_file($this->content_folder[$existing_index]['path']) == $val[1])
+                {
+                  // echo "MD5 SIMILAR<br>";
+                  array_push($file_no_change, array('path' => $val[0]));
+                } else {
+                  // echo "MD5 DIFFERENT<br>";
+                  array_push($file_changed, array('path' => $val[0]));
+                }
               } else {
-                // echo "MD5 DIFFERENT<br>";
                 array_push($file_changed, array('path' => $val[0]));
               }
+
               $this->content_folder[$existing_index] = null;
               unset($this->content_folder[$existing_index]);
             } else {
@@ -1464,15 +1498,18 @@ class Md5 extends \Core\Controller
           break;
         }
       }
-      // exit();
-      // if (file_exists('../tmp/compare_compare_index.pdna'))
-      // {
-      //   $progress = file_get_contents('../tmp/compare_compare_index.pdna');
-      //   echo $progress;
-      //   return $progress;
-      // } else {
-      //   return false;
-      // }
+
+    }
+
+    public function gen_progress() {
+      if (file_exists('../tmp/generate_process.pdna'))
+      {
+        $progress = file_get_contents('../tmp/generate_process.pdna');
+        echo $progress;
+        return $progress;
+      } else {
+        return false;
+      }
     }
 
     public function getInitFile()
@@ -1575,21 +1612,24 @@ class Md5 extends \Core\Controller
         $current_step = 0;
         foreach ($file_changed as $modified)
         {
-          $contents = file_get_contents('../..'.$modified['path']);
-          foreach ($searchforArr as $searchfor)
-          {
-            $pattern = preg_quote($searchfor, '/');
-            $detected = $pattern;
-            // finalise the regular expression, matching the whole line
-            $pattern = "/^.*$pattern.*\$/m";
-            if(preg_match_all($pattern, $contents, $matches))
+          if (file_exists('../..'.$modified['path'])) {
+            $contents = file_get_contents('../..'.$modified['path']);
+            foreach ($searchforArr as $searchfor)
             {
-              $modified['suspicious'] = $detected;
-              // $modified['suspicious'] = implode("\n", $matches[0]);
-              array_push($suspicious_file, $modified);
+              $pattern = preg_quote($searchfor, '/');
+              $detected = $pattern;
+              // finalise the regular expression, matching the whole line
+              $pattern = "/^.*$pattern.*\$/m";
+              if(preg_match_all($pattern, $contents, $matches))
+              {
+                $modified['suspicious'] = $detected;
+                // $modified['suspicious'] = implode("\n", $matches[0]);
+                array_push($suspicious_file, $modified);
 
-             }
+               }
+            }
           }
+
           if ($current_step == round($total_entries/$step_max))
           {
             // $dd = json_encode(array('status' => 0, 'progress' => number_format((($current_entrie/$total_entries)*100),2), 'count' => $current_entrie, 'total' => $total_entries, 'type' => ' 2 - Analyzing...'));
@@ -2022,16 +2062,12 @@ class Md5 extends \Core\Controller
     }
 
     public function test() {
-      ob_implicit_flush(1);
+      $files = scandir('../dna/', SCANDIR_SORT_DESCENDING);
+      $dna_reference = $files[0];
+      $filename = '../dna/'.$dna_reference;
 
-      for($i=0; $i<10; $i++){
-          echo $i;
-
-          //this is for the buffer achieve the minimum size in order to flush data
-          echo str_repeat(' ',1024*64);
-
-          sleep(1);
-      }
+      var_export($filename);
+      exit();
     }
 
 

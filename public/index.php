@@ -59,6 +59,7 @@ $router->add('md5/compare_analyze', ['controller' => 'Md5', 'action' => 'compare
 $router->add('md5/compare_finalyze', ['controller' => 'Md5', 'action' => 'compare_finalyze']);
 $router->add('md5/test', ['controller' => 'Md5', 'action' => 'test']);
 $router->add('md5/progress', ['controller' => 'Md5', 'action' => 'getCurrentProgress']);
+$router->add('md5/gen_progress', ['controller' => 'Md5', 'action' => 'gen_progress']);
 $router->add('md5/getInit', ['controller' => 'Md5', 'action' => 'getInitFile']);
 
 
